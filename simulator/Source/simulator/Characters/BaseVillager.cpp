@@ -7,6 +7,8 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "VillagerAIController.h"
+#include "TurnManager.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 ABaseVillager::ABaseVillager()
@@ -21,6 +23,12 @@ ABaseVillager::ABaseVillager()
 	RunSpeed = 300.0f;
 	bIsPatrolling = true;
 	CurrentPatrolIndex = 0;
+
+	// State system defaults
+	CurrentState = EActorState::IDLE;
+	SocialClass = ESocialClass::Commoner;
+	CurrentAction = EActionType::None;
+	TurnManager = nullptr;
 
 	// Create a simple cube mesh for visualization
 	BodyMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
@@ -61,6 +69,19 @@ void ABaseVillager::BeginPlay()
 	Super::BeginPlay();
 
 	SetMeshColor();
+
+	// Find turn manager in the world
+	TArray<AActor*> FoundActors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATurnManager::StaticClass(), FoundActors);
+	if (FoundActors.Num() > 0)
+	{
+		TurnManager = Cast<ATurnManager>(FoundActors[0]);
+		UE_LOG(LogTemp, Log, TEXT("%s found TurnManager"), *GetName());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s could not find TurnManager!"), *GetName());
+	}
 }
 
 void ABaseVillager::SetMeshColor()
@@ -109,4 +130,70 @@ void ABaseVillager::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+}
+
+void ABaseVillager::RequestActionPermission(EActionType ActionType)
+{
+	if (!TurnManager)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s: No TurnManager available"), *GetName());
+		return;
+	}
+
+	if (CurrentState != EActorState::IDLE)
+	{
+		UE_LOG(LogTemp, Verbose, TEXT("%s: Cannot request action, not IDLE (current state: %d)"), *GetName(), (int32)CurrentState);
+		return;
+	}
+
+	TurnManager->RequestAction(this, ActionType, SocialClass);
+	UE_LOG(LogTemp, Log, TEXT("%s requested action: %d"), *GetName(), (int32)ActionType);
+}
+
+void ABaseVillager::OnActionPermissionGranted(EActionType ActionType)
+{
+	CurrentAction = ActionType;
+
+	// Change state based on action type
+	switch (ActionType)
+	{
+	case EActionType::Move:
+		CurrentState = EActorState::MOVING;
+		break;
+	case EActionType::Work:
+		CurrentState = EActorState::WORKING;
+		break;
+	case EActionType::Fight:
+		CurrentState = EActorState::FIGHTING;
+		break;
+	case EActionType::Trade:
+		CurrentState = EActorState::TRADING;
+		break;
+	case EActionType::Rest:
+		CurrentState = EActorState::RESTING;
+		break;
+	default:
+		CurrentState = EActorState::IDLE;
+		break;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("%s: Action GRANTED - %d, State: %d"),
+		*GetName(), (int32)ActionType, (int32)CurrentState);
+
+	// TODO: Start the actual action (will be handled by BT)
+}
+
+void ABaseVillager::CompleteCurrentAction()
+{
+	if (!TurnManager)
+		return;
+
+	UE_LOG(LogTemp, Warning, TEXT("%s: Action COMPLETED - %d"), *GetName(), (int32)CurrentAction);
+
+	// Notify turn manager
+	TurnManager->NotifyActionComplete(this);
+
+	// Reset to IDLE
+	CurrentState = EActorState::IDLE;
+	CurrentAction = EActionType::None;
 }

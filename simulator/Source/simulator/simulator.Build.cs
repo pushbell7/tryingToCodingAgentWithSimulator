@@ -14,7 +14,9 @@ public class simulator : ModuleRules
 			"simulator/Characters",
 			"simulator/AI",
 			"simulator/GameModes",
-			"simulator/PlayerController"
+			"simulator/PlayerController",
+			"simulator/Managers",
+			"simulator/Core"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

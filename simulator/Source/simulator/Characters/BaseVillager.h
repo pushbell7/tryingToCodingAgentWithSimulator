@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "SimulatorTypes.h"
 #include "BaseVillager.generated.h"
 
 UENUM(BlueprintType)
@@ -58,10 +59,36 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Visuals")
 	class UStaticMeshComponent* BodyMesh;
 
+	// State & Action System
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "State")
+	EActorState CurrentState;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "State")
+	ESocialClass SocialClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "State")
+	EActionType CurrentAction;
+
+	// Request action from turn manager
+	UFUNCTION(BlueprintCallable, Category = "Turn System")
+	void RequestActionPermission(EActionType ActionType);
+
+	// Called when action permission is granted
+	UFUNCTION(BlueprintCallable, Category = "Turn System")
+	void OnActionPermissionGranted(EActionType ActionType);
+
+	// Notify turn manager that action is complete
+	UFUNCTION(BlueprintCallable, Category = "Turn System")
+	void CompleteCurrentAction();
+
 protected:
 	// Current patrol index
 	int32 CurrentPatrolIndex;
 
 	// Set mesh color based on role
 	void SetMeshColor();
+
+	// Reference to turn manager
+	UPROPERTY()
+	class ATurnManager* TurnManager;
 };
