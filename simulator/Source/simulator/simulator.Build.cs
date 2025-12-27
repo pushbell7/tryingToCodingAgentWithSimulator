@@ -7,8 +7,15 @@ public class simulator : ModuleRules
 	public simulator(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
+
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "AIModule", "NavigationSystem", "GameplayTasks" });
+
+		PublicIncludePaths.AddRange(new string[] {
+			"simulator/Characters",
+			"simulator/AI",
+			"simulator/GameModes",
+			"simulator/PlayerController"
+		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

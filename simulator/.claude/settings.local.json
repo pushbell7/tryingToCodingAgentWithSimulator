@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" -version)",
+      "Bash(\"/c/Program Files \\(x86\\)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/MSBuild.exe\" -version)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" simulator.sln -t:Build -p:Configuration=Development -p:Platform=Win64 -v:minimal)",
+      "Bash(\"/c/Program Files/Epic Games/UE_5.5/Engine/Build/BatchFiles/Build.bat\" -projectfiles -project=\"$PWD/simulator.uproject\" -game -engine)",
+      "Bash(\"/c/Program Files/Epic Games/UE_5.5/Engine/Binaries/Win64/UnrealEditor.exe\" \"$PWD/simulator.uproject\")",
+      "Bash(\"/c/Program Files/Epic Games/UE_5.5/Engine/Build/BatchFiles/Build.bat\" simulator Win64 Development -Project=\"$PWD/simulator.uproject\" -WaitMutex)"
+    ]
+  }
+}
