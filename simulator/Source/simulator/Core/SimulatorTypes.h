@@ -47,3 +47,72 @@ enum class EActionType : uint8
 	Trade       UMETA(DisplayName = "Trade"),          // Trade goods
 	Rest        UMETA(DisplayName = "Rest")            // Sleep/recover
 };
+
+/**
+ * Terrain zone types for resource management
+ */
+UENUM(BlueprintType)
+enum class ETerrainZone : uint8
+{
+	Farmland    UMETA(DisplayName = "Farmland"),       // Agricultural land (crops, orchards)
+	Pasture     UMETA(DisplayName = "Pasture"),        // Livestock grazing
+	Forest      UMETA(DisplayName = "Forest"),         // Timber, hunting
+	Mountain    UMETA(DisplayName = "Mountain"),       // Mining (ore, stone)
+	Water       UMETA(DisplayName = "Water"),          // Fishing
+	Settlement  UMETA(DisplayName = "Settlement")      // Buildings, markets
+};
+
+/**
+ * Resource types in the economy system
+ * Tier 1: Raw materials from zones
+ * Tier 2: Processed goods from workshops
+ * Tier 3: Luxury/trade goods
+ */
+UENUM(BlueprintType)
+enum class EResourceType : uint8
+{
+	// Tier 1 - Raw Materials
+	Food        UMETA(DisplayName = "Food"),           // From Farmland (wheat, vegetables)
+	Meat        UMETA(DisplayName = "Meat"),           // From Pasture (livestock)
+	Wood        UMETA(DisplayName = "Wood"),           // From Forest (timber)
+	Stone       UMETA(DisplayName = "Stone"),          // From Mountain (quarry)
+	Iron        UMETA(DisplayName = "Iron"),           // From Mountain (mine)
+	Fish        UMETA(DisplayName = "Fish"),           // From Water (fishing)
+
+	// Tier 2 - Processed Goods
+	Bread       UMETA(DisplayName = "Bread"),          // Food -> Bread (mill/bakery)
+	Leather     UMETA(DisplayName = "Leather"),        // Meat -> Leather (tannery)
+	Planks      UMETA(DisplayName = "Planks"),         // Wood -> Planks (sawmill)
+	Tools       UMETA(DisplayName = "Tools"),          // Iron + Wood -> Tools (blacksmith)
+	Weapons     UMETA(DisplayName = "Weapons"),        // Iron -> Weapons (blacksmith)
+
+	// Tier 3 - Luxury/Trade Goods
+	Gold        UMETA(DisplayName = "Gold"),           // From Mountain (rare)
+	Cloth       UMETA(DisplayName = "Cloth"),          // Processed (loom)
+	Ale         UMETA(DisplayName = "Ale")             // Food -> Ale (brewery)
+};
+
+/**
+ * Single resource stack (type + quantity)
+ */
+USTRUCT(BlueprintType)
+struct FResourceStack
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+	EResourceType ResourceType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+	int32 Quantity;
+
+	FResourceStack()
+		: ResourceType(EResourceType::Food)
+		, Quantity(0)
+	{}
+
+	FResourceStack(EResourceType InType, int32 InQuantity)
+		: ResourceType(InType)
+		, Quantity(InQuantity)
+	{}
+};

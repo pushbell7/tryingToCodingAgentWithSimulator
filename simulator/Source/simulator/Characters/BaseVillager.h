@@ -59,6 +59,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Visuals")
 	class UStaticMeshComponent* BodyMesh;
 
+	// Inventory system
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+	class UInventoryComponent* Inventory;
+
 	// State & Action System
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "State")
 	EActorState CurrentState;

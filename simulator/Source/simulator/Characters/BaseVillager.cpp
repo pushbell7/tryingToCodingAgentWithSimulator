@@ -9,6 +9,7 @@
 #include "VillagerAIController.h"
 #include "TurnManager.h"
 #include "Kismet/GameplayStatics.h"
+#include "InventoryComponent.h"
 
 // Sets default values
 ABaseVillager::ABaseVillager()
@@ -29,6 +30,13 @@ ABaseVillager::ABaseVillager()
 	SocialClass = ESocialClass::Commoner;
 	CurrentAction = EActionType::None;
 	TurnManager = nullptr;
+
+	// Create inventory component
+	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
+	if (Inventory)
+	{
+		Inventory->MaxCapacity = 50; // Villagers can carry 50 items
+	}
 
 	// Create a simple cube mesh for visualization
 	BodyMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
