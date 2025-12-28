@@ -116,3 +116,30 @@ struct FResourceStack
 		, Quantity(InQuantity)
 	{}
 };
+
+/**
+ * Building types for settlement zones
+ */
+UENUM(BlueprintType)
+enum class EBuildingType : uint8
+{
+	// Storage
+	Warehouse       UMETA(DisplayName = "Warehouse"),      // General storage for all resources
+	Granary         UMETA(DisplayName = "Granary"),        // Food storage only
+
+	// Processing - Tier 1 to Tier 2
+	Mill            UMETA(DisplayName = "Mill"),           // Food -> Bread
+	Bakery          UMETA(DisplayName = "Bakery"),         // Food -> Bread (alternative)
+	Tannery         UMETA(DisplayName = "Tannery"),        // Meat -> Leather
+	Sawmill         UMETA(DisplayName = "Sawmill"),        // Wood -> Planks
+	Blacksmith      UMETA(DisplayName = "Blacksmith"),     // Iron + Wood -> Tools/Weapons
+
+	// Processing - Tier 2 to Tier 3
+	Brewery         UMETA(DisplayName = "Brewery"),        // Food -> Ale
+	Weaver          UMETA(DisplayName = "Weaver"),         // -> Cloth
+
+	// Special
+	Market          UMETA(DisplayName = "Market"),         // Trade hub
+	House           UMETA(DisplayName = "House"),          // Residential (population capacity)
+	TownHall        UMETA(DisplayName = "Town Hall")       // Administration building
+};
