@@ -143,3 +143,33 @@ enum class EBuildingType : uint8
 	House           UMETA(DisplayName = "House"),          // Residential (population capacity)
 	TownHall        UMETA(DisplayName = "Town Hall")       // Administration building
 };
+
+/**
+ * Crafting recipe - defines input and output for resource processing
+ */
+USTRUCT(BlueprintType)
+struct FCraftingRecipe
+{
+	GENERATED_BODY()
+
+	// Input resources required
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recipe")
+	TArray<FResourceStack> InputResources;
+
+	// Output resources produced
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recipe")
+	TArray<FResourceStack> OutputResources;
+
+	// Time to craft in seconds
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recipe")
+	float CraftingTime;
+
+	// Building type required for this recipe
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recipe")
+	EBuildingType RequiredBuilding;
+
+	FCraftingRecipe()
+		: CraftingTime(5.0f)
+		, RequiredBuilding(EBuildingType::Blacksmith)
+	{}
+};
