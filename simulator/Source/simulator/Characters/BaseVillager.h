@@ -73,6 +73,29 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "State")
 	EActionType CurrentAction;
 
+	// Assignment System
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Assignment")
+	class AHouse* AssignedHome;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Assignment")
+	class ATerrainZone* AssignedWorkZone;
+
+	// Assign villager to a home
+	UFUNCTION(BlueprintCallable, Category = "Assignment")
+	bool AssignToHome(class AHouse* Home);
+
+	// Assign villager to a work zone
+	UFUNCTION(BlueprintCallable, Category = "Assignment")
+	bool AssignToWorkZone(class ATerrainZone* Zone);
+
+	// Unassign from home
+	UFUNCTION(BlueprintCallable, Category = "Assignment")
+	void UnassignFromHome();
+
+	// Unassign from work zone
+	UFUNCTION(BlueprintCallable, Category = "Assignment")
+	void UnassignFromWorkZone();
+
 	// Request action from turn manager
 	UFUNCTION(BlueprintCallable, Category = "Turn System")
 	void RequestActionPermission(EActionType ActionType);

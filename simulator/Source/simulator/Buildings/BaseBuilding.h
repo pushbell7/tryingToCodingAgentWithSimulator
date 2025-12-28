@@ -71,6 +71,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Building")
 	bool IsProcessingBuilding() const;
 
+	// Assign a worker to this building
+	UFUNCTION(BlueprintCallable, Category = "Building")
+	bool AddWorker(class ABaseVillager* Worker);
+
+	// Remove a worker from this building
+	UFUNCTION(BlueprintCallable, Category = "Building")
+	bool RemoveWorker(class ABaseVillager* Worker);
+
+	// Check if building has available worker slots
+	UFUNCTION(BlueprintCallable, Category = "Building")
+	bool HasAvailableWorkerSlots() const;
+
 protected:
 	// Workers currently assigned to this building
 	UPROPERTY()

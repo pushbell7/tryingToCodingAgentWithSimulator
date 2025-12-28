@@ -4,6 +4,7 @@
 #include "AIController.h"
 #include "BaseVillager.h"
 #include "BaseBuilding.h"
+#include "House.h"
 #include "BuildingManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -51,17 +52,31 @@ EBTNodeResult::Type UBTTask_Rest::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 		return EBTNodeResult::Failed;
 	}
 
-	// Find nearest house
-	ABaseBuilding* NearestHouse = BuildingManager->GetNearestBuilding(Villager->GetActorLocation(), EBuildingType::House);
+	// Use assigned home if available, otherwise find nearest house
+	ABaseBuilding* TargetHouse = Cast<ABaseBuilding>(Villager->AssignedHome);
 
-	if (!NearestHouse)
+	if (!TargetHouse)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s: No house found for resting"), *Villager->GetName());
-		return EBTNodeResult::Failed;
+		// Fallback to nearest house if no home assigned
+		TargetHouse = BuildingManager->GetNearestBuilding(Villager->GetActorLocation(), EBuildingType::House);
+
+		if (!TargetHouse)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("%s: No house found for resting"), *Villager->GetName());
+			return EBTNodeResult::Failed;
+		}
+
+		UE_LOG(LogTemp, Log, TEXT("%s: No assigned home, using nearest house '%s'"),
+			*Villager->GetName(), *TargetHouse->BuildingName);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("%s: Using assigned home '%s'"),
+			*Villager->GetName(), *TargetHouse->BuildingName);
 	}
 
 	// Check distance
-	float Distance = FVector::Dist(Villager->GetActorLocation(), NearestHouse->GetBuildingLocation());
+	float Distance = FVector::Dist(Villager->GetActorLocation(), TargetHouse->GetBuildingLocation());
 	if (Distance > MaxSearchDistance)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("%s: House too far (%f > %f)"), *Villager->GetName(), Distance, MaxSearchDistance);
@@ -75,7 +90,7 @@ EBTNodeResult::Type UBTTask_Rest::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 		UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 		if (BlackboardComp)
 		{
-			BlackboardComp->SetValueAsObject(TargetBuildingKey, NearestHouse);
+			BlackboardComp->SetValueAsObject(TargetBuildingKey, TargetHouse);
 		}
 
 		UE_LOG(LogTemp, Log, TEXT("%s: Not at house yet, need to move (%f > %f)"),
@@ -99,7 +114,7 @@ EBTNodeResult::Type UBTTask_Rest::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 	Villager->CurrentState = EActorState::RESTING;
 
 	UE_LOG(LogTemp, Log, TEXT("%s: Started resting at %s for %.2f seconds"),
-		*Villager->GetName(), *NearestHouse->BuildingName, ActualRestTime);
+		*Villager->GetName(), *TargetHouse->BuildingName, ActualRestTime);
 
 	return EBTNodeResult::InProgress;
 }

@@ -51,18 +51,26 @@ bool ACraftsmanVillager::AssignToWorkshop(ABaseBuilding* Workshop)
 		UnassignFromWorkshop();
 	}
 
-	AssignedWorkshop = Workshop;
+	// Add to workshop's worker list
+	if (Workshop->AddWorker(this))
+	{
+		AssignedWorkshop = Workshop;
 
-	UE_LOG(LogTemp, Log, TEXT("Craftsman '%s' assigned to workshop '%s'"),
-		*VillagerName, *Workshop->BuildingName);
+		UE_LOG(LogTemp, Log, TEXT("Craftsman '%s' assigned to workshop '%s'"),
+			*VillagerName, *Workshop->BuildingName);
 
-	return true;
+		return true;
+	}
+
+	return false;
 }
 
 void ACraftsmanVillager::UnassignFromWorkshop()
 {
 	if (AssignedWorkshop)
 	{
+		AssignedWorkshop->RemoveWorker(this);
+
 		UE_LOG(LogTemp, Log, TEXT("Craftsman '%s' unassigned from workshop '%s'"),
 			*VillagerName, *AssignedWorkshop->BuildingName);
 

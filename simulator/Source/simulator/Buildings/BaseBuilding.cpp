@@ -3,6 +3,7 @@
 #include "BaseBuilding.h"
 #include "InventoryComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "BaseVillager.h"
 
 ABaseBuilding::ABaseBuilding()
 {
@@ -132,4 +133,61 @@ bool ABaseBuilding::IsProcessingBuilding() const
 		BuildingType == EBuildingType::Blacksmith ||
 		BuildingType == EBuildingType::Brewery ||
 		BuildingType == EBuildingType::Weaver;
+}
+
+bool ABaseBuilding::AddWorker(ABaseVillager* Worker)
+{
+	if (!Worker)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Building '%s': Cannot add null worker"), *BuildingName);
+		return false;
+	}
+
+	// Check if already assigned
+	if (AssignedWorkers.Contains(Worker))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Building '%s': Worker %s already assigned"), *BuildingName, *Worker->VillagerName);
+		return false;
+	}
+
+	// Check capacity
+	if (CurrentWorkers >= MaxWorkers)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Building '%s': Full capacity (%d/%d)"), *BuildingName, CurrentWorkers, MaxWorkers);
+		return false;
+	}
+
+	// Add worker
+	AssignedWorkers.Add(Worker);
+	CurrentWorkers = AssignedWorkers.Num();
+
+	UE_LOG(LogTemp, Log, TEXT("Building '%s': Added worker %s (%d/%d)"),
+		*BuildingName, *Worker->VillagerName, CurrentWorkers, MaxWorkers);
+
+	return true;
+}
+
+bool ABaseBuilding::RemoveWorker(ABaseVillager* Worker)
+{
+	if (!Worker)
+	{
+		return false;
+	}
+
+	// Remove from list
+	int32 Removed = AssignedWorkers.Remove(Worker);
+	if (Removed > 0)
+	{
+		CurrentWorkers = AssignedWorkers.Num();
+		UE_LOG(LogTemp, Log, TEXT("Building '%s': Removed worker %s (%d/%d)"),
+			*BuildingName, *Worker->VillagerName, CurrentWorkers, MaxWorkers);
+		return true;
+	}
+
+	return false;
+}
+
+bool ABaseBuilding::HasAvailableWorkerSlots() const
+{
+	return CurrentWorkers < MaxWorkers;
 }

@@ -4,6 +4,7 @@
 #include "Components/BrushComponent.h"
 #include "Engine/CollisionProfile.h"
 #include "DrawDebugHelpers.h"
+#include "BaseVillager.h"
 
 ATerrainZone::ATerrainZone()
 {
@@ -14,6 +15,10 @@ ATerrainZone::ATerrainZone()
 	ResourceRichness = 0.5f;
 	Fertility = 0.5f;
 	ZoneName = TEXT("Terrain Zone");
+
+	// Worker capacity defaults
+	MaxWorkers = 5; // Default: 5 workers per zone
+	CurrentWorkers = 0;
 }
 
 void ATerrainZone::BeginPlay()
@@ -195,4 +200,61 @@ bool ATerrainZone::CanProduceResources() const
 
 	// Must have some richness remaining
 	return ResourceRichness > 0.0f;
+}
+
+bool ATerrainZone::AddWorker(ABaseVillager* Worker)
+{
+	if (!Worker)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Zone '%s': Cannot add null worker"), *ZoneName);
+		return false;
+	}
+
+	// Check if already assigned
+	if (AssignedWorkers.Contains(Worker))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Zone '%s': Worker %s already assigned"), *ZoneName, *Worker->VillagerName);
+		return false;
+	}
+
+	// Check capacity
+	if (CurrentWorkers >= MaxWorkers)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Zone '%s': Full capacity (%d/%d)"), *ZoneName, CurrentWorkers, MaxWorkers);
+		return false;
+	}
+
+	// Add worker
+	AssignedWorkers.Add(Worker);
+	CurrentWorkers = AssignedWorkers.Num();
+
+	UE_LOG(LogTemp, Log, TEXT("Zone '%s': Added worker %s (%d/%d)"),
+		*ZoneName, *Worker->VillagerName, CurrentWorkers, MaxWorkers);
+
+	return true;
+}
+
+bool ATerrainZone::RemoveWorker(ABaseVillager* Worker)
+{
+	if (!Worker)
+	{
+		return false;
+	}
+
+	// Remove from list
+	int32 Removed = AssignedWorkers.Remove(Worker);
+	if (Removed > 0)
+	{
+		CurrentWorkers = AssignedWorkers.Num();
+		UE_LOG(LogTemp, Log, TEXT("Zone '%s': Removed worker %s (%d/%d)"),
+			*ZoneName, *Worker->VillagerName, CurrentWorkers, MaxWorkers);
+		return true;
+	}
+
+	return false;
+}
+
+bool ATerrainZone::HasAvailableWorkerSlots() const
+{
+	return CurrentWorkers < MaxWorkers;
 }

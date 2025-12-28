@@ -42,6 +42,30 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zone")
 	FString ZoneName;
 
+	// Maximum number of workers that can be assigned to this zone
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zone")
+	int32 MaxWorkers;
+
+	// Current number of assigned workers
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Zone")
+	int32 CurrentWorkers;
+
+	// List of workers assigned to this zone
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Zone")
+	TArray<class ABaseVillager*> AssignedWorkers;
+
+	// Assign a worker to this zone
+	UFUNCTION(BlueprintCallable, Category = "Zone")
+	bool AddWorker(class ABaseVillager* Worker);
+
+	// Remove a worker from this zone
+	UFUNCTION(BlueprintCallable, Category = "Zone")
+	bool RemoveWorker(class ABaseVillager* Worker);
+
+	// Check if zone has available worker slots
+	UFUNCTION(BlueprintCallable, Category = "Zone")
+	bool HasAvailableWorkerSlots() const;
+
 	// Check if an actor is inside this zone
 	UFUNCTION(BlueprintCallable, Category = "Zone")
 	bool IsActorInZone(AActor* Actor) const;

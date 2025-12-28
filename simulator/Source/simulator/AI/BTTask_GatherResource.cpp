@@ -56,13 +56,28 @@ EBTNodeResult::Type UBTTask_GatherResource::ExecuteTask(UBehaviorTreeComponent& 
 		return EBTNodeResult::Failed;
 	}
 
-	// Find nearest zone of target type
-	ATerrainZone* TargetZone = ZoneManager->GetNearestZone(Villager->GetActorLocation(), TargetZoneType);
+	// Use assigned work zone if available and matches target type, otherwise find nearest zone
+	ATerrainZone* TargetZone = nullptr;
 
-	if (!TargetZone)
+	if (Villager->AssignedWorkZone && Villager->AssignedWorkZone->ZoneType == TargetZoneType)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s: No zone of type %d found"), *Villager->GetName(), (int32)TargetZoneType);
-		return EBTNodeResult::Failed;
+		TargetZone = Villager->AssignedWorkZone;
+		UE_LOG(LogTemp, Log, TEXT("%s: Using assigned work zone '%s'"),
+			*Villager->GetName(), *TargetZone->ZoneName);
+	}
+	else
+	{
+		// Fallback to nearest zone if no work zone assigned or type mismatch
+		TargetZone = ZoneManager->GetNearestZone(Villager->GetActorLocation(), TargetZoneType);
+
+		if (!TargetZone)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("%s: No zone of type %d found"), *Villager->GetName(), (int32)TargetZoneType);
+			return EBTNodeResult::Failed;
+		}
+
+		UE_LOG(LogTemp, Log, TEXT("%s: No assigned work zone or type mismatch, using nearest zone '%s'"),
+			*Villager->GetName(), *TargetZone->ZoneName);
 	}
 
 	// Check distance

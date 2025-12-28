@@ -10,6 +10,8 @@
 #include "TurnManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "InventoryComponent.h"
+#include "House.h"
+#include "TerrainZone.h"
 
 // Sets default values
 ABaseVillager::ABaseVillager()
@@ -30,6 +32,10 @@ ABaseVillager::ABaseVillager()
 	SocialClass = ESocialClass::Commoner;
 	CurrentAction = EActionType::None;
 	TurnManager = nullptr;
+
+	// Assignment system defaults
+	AssignedHome = nullptr;
+	AssignedWorkZone = nullptr;
 
 	// Create inventory component
 	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
@@ -204,4 +210,74 @@ void ABaseVillager::CompleteCurrentAction()
 	// Reset to IDLE
 	CurrentState = EActorState::IDLE;
 	CurrentAction = EActionType::None;
+}
+
+bool ABaseVillager::AssignToHome(AHouse* Home)
+{
+	if (!Home)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s: Cannot assign to null home"), *VillagerName);
+		return false;
+	}
+
+	// Unassign from previous home
+	if (AssignedHome)
+	{
+		AssignedHome->RemoveResident(this);
+	}
+
+	// Assign to new home
+	if (Home->AddResident(this))
+	{
+		AssignedHome = Home;
+		UE_LOG(LogTemp, Log, TEXT("%s assigned to home '%s'"), *VillagerName, *Home->BuildingName);
+		return true;
+	}
+
+	return false;
+}
+
+bool ABaseVillager::AssignToWorkZone(ATerrainZone* Zone)
+{
+	if (!Zone)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s: Cannot assign to null work zone"), *VillagerName);
+		return false;
+	}
+
+	// Unassign from previous zone
+	if (AssignedWorkZone)
+	{
+		UnassignFromWorkZone();
+	}
+
+	// Add to zone's worker list
+	if (Zone->AddWorker(this))
+	{
+		AssignedWorkZone = Zone;
+		UE_LOG(LogTemp, Log, TEXT("%s assigned to work zone '%s'"), *VillagerName, *Zone->ZoneName);
+		return true;
+	}
+
+	return false;
+}
+
+void ABaseVillager::UnassignFromHome()
+{
+	if (AssignedHome)
+	{
+		AssignedHome->RemoveResident(this);
+		UE_LOG(LogTemp, Log, TEXT("%s unassigned from home '%s'"), *VillagerName, *AssignedHome->BuildingName);
+		AssignedHome = nullptr;
+	}
+}
+
+void ABaseVillager::UnassignFromWorkZone()
+{
+	if (AssignedWorkZone)
+	{
+		AssignedWorkZone->RemoveWorker(this);
+		UE_LOG(LogTemp, Log, TEXT("%s unassigned from work zone '%s'"), *VillagerName, *AssignedWorkZone->ZoneName);
+		AssignedWorkZone = nullptr;
+	}
 }
