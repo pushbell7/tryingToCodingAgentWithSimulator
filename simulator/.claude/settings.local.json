@@ -8,7 +8,8 @@
       "Bash(\"/c/Program Files/Epic Games/UE_5.5/Engine/Binaries/Win64/UnrealEditor.exe\" \"$PWD/simulator.uproject\")",
       "Bash(\"/c/Program Files/Epic Games/UE_5.5/Engine/Build/BatchFiles/Build.bat\" simulator Win64 Development -Project=\"$PWD/simulator.uproject\" -WaitMutex)",
       "Bash(git push:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
