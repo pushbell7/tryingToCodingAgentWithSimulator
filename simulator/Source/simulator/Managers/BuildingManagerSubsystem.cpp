@@ -1,39 +1,48 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "BuildingManager.h"
+#include "BuildingManagerSubsystem.h"
 #include "BaseBuilding.h"
 #include "EngineUtils.h"
 #include "TimerManager.h"
 
-ABuildingManager::ABuildingManager()
+void UBuildingManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
-	PrimaryActorTick.bCanEverTick = false;
-	RefreshInterval = 5.0f; // Refresh every 5 seconds
-}
+	Super::Initialize(Collection);
 
-void ABuildingManager::BeginPlay()
-{
-	Super::BeginPlay();
+	RefreshInterval = 5.0f; // Refresh every 5 seconds
 
 	// Initial refresh
 	RefreshBuildingList();
 
 	// Set up periodic refresh
-	if (RefreshInterval > 0.0f)
+	if (RefreshInterval > 0.0f && GetWorld())
 	{
-		GetWorldTimerManager().SetTimer(
+		GetWorld()->GetTimerManager().SetTimer(
 			RefreshTimerHandle,
 			this,
-			&ABuildingManager::PeriodicRefresh,
+			&UBuildingManagerSubsystem::PeriodicRefresh,
 			RefreshInterval,
 			true
 		);
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("BuildingManager initialized with %d buildings"), AllBuildings.Num());
+	UE_LOG(LogTemp, Log, TEXT("BuildingManagerSubsystem initialized with %d buildings"), AllBuildings.Num());
 }
 
-void ABuildingManager::RefreshBuildingList()
+void UBuildingManagerSubsystem::Deinitialize()
+{
+	// Clear timer
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(RefreshTimerHandle);
+	}
+
+	AllBuildings.Empty();
+
+	Super::Deinitialize();
+}
+
+void UBuildingManagerSubsystem::RefreshBuildingList()
 {
 	AllBuildings.Empty();
 
@@ -52,10 +61,10 @@ void ABuildingManager::RefreshBuildingList()
 		}
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("BuildingManager: Found %d buildings"), AllBuildings.Num());
+	UE_LOG(LogTemp, Log, TEXT("BuildingManagerSubsystem: Found %d buildings"), AllBuildings.Num());
 }
 
-TArray<ABaseBuilding*> ABuildingManager::GetBuildingsByType(EBuildingType BuildingType) const
+TArray<ABaseBuilding*> UBuildingManagerSubsystem::GetBuildingsByType(EBuildingType BuildingType) const
 {
 	TArray<ABaseBuilding*> Result;
 
@@ -70,7 +79,7 @@ TArray<ABaseBuilding*> ABuildingManager::GetBuildingsByType(EBuildingType Buildi
 	return Result;
 }
 
-ABaseBuilding* ABuildingManager::GetNearestBuilding(FVector Location, EBuildingType BuildingType) const
+ABaseBuilding* UBuildingManagerSubsystem::GetNearestBuilding(FVector Location, EBuildingType BuildingType) const
 {
 	ABaseBuilding* NearestBuilding = nullptr;
 	float NearestDistance = FLT_MAX;
@@ -91,7 +100,7 @@ ABaseBuilding* ABuildingManager::GetNearestBuilding(FVector Location, EBuildingT
 	return NearestBuilding;
 }
 
-TArray<ABaseBuilding*> ABuildingManager::GetBuildingsWithinRadius(FVector Location, float Radius) const
+TArray<ABaseBuilding*> UBuildingManagerSubsystem::GetBuildingsWithinRadius(FVector Location, float Radius) const
 {
 	TArray<ABaseBuilding*> Result;
 	float RadiusSquared = Radius * Radius;
@@ -111,7 +120,7 @@ TArray<ABaseBuilding*> ABuildingManager::GetBuildingsWithinRadius(FVector Locati
 	return Result;
 }
 
-ABaseBuilding* ABuildingManager::GetNearestStorageBuilding(FVector Location) const
+ABaseBuilding* UBuildingManagerSubsystem::GetNearestStorageBuilding(FVector Location) const
 {
 	ABaseBuilding* NearestStorage = nullptr;
 	float NearestDistance = FLT_MAX;
@@ -132,7 +141,7 @@ ABaseBuilding* ABuildingManager::GetNearestStorageBuilding(FVector Location) con
 	return NearestStorage;
 }
 
-TArray<ABaseBuilding*> ABuildingManager::GetAllStorageBuildings() const
+TArray<ABaseBuilding*> UBuildingManagerSubsystem::GetAllStorageBuildings() const
 {
 	TArray<ABaseBuilding*> Result;
 
@@ -147,7 +156,7 @@ TArray<ABaseBuilding*> ABuildingManager::GetAllStorageBuildings() const
 	return Result;
 }
 
-ABaseBuilding* ABuildingManager::GetNearestAvailableStorage(FVector Location) const
+ABaseBuilding* UBuildingManagerSubsystem::GetNearestAvailableStorage(FVector Location) const
 {
 	ABaseBuilding* NearestStorage = nullptr;
 	float NearestDistance = FLT_MAX;
@@ -168,12 +177,12 @@ ABaseBuilding* ABuildingManager::GetNearestAvailableStorage(FVector Location) co
 	return NearestStorage;
 }
 
-int32 ABuildingManager::GetBuildingCount() const
+int32 UBuildingManagerSubsystem::GetBuildingCount() const
 {
 	return AllBuildings.Num();
 }
 
-int32 ABuildingManager::GetBuildingCountByType(EBuildingType BuildingType) const
+int32 UBuildingManagerSubsystem::GetBuildingCountByType(EBuildingType BuildingType) const
 {
 	int32 Count = 0;
 
@@ -188,7 +197,7 @@ int32 ABuildingManager::GetBuildingCountByType(EBuildingType BuildingType) const
 	return Count;
 }
 
-void ABuildingManager::PeriodicRefresh()
+void UBuildingManagerSubsystem::PeriodicRefresh()
 {
 	RefreshBuildingList();
 }

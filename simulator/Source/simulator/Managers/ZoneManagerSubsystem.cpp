@@ -1,26 +1,27 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "ZoneManager.h"
+#include "ZoneManagerSubsystem.h"
 #include "TerrainZone.h"
-#include "Kismet/GameplayStatics.h"
 #include "EngineUtils.h"
 
-AZoneManager::AZoneManager()
+void UZoneManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
-	PrimaryActorTick.bCanEverTick = false;
-}
-
-void AZoneManager::BeginPlay()
-{
-	Super::BeginPlay();
+	Super::Initialize(Collection);
 
 	// Collect all zones in the world
 	RefreshZoneList();
 
-	UE_LOG(LogTemp, Log, TEXT("ZoneManager initialized - Found %d zones"), AllZones.Num());
+	UE_LOG(LogTemp, Log, TEXT("ZoneManagerSubsystem initialized - Found %d zones"), AllZones.Num());
 }
 
-void AZoneManager::RefreshZoneList()
+void UZoneManagerSubsystem::Deinitialize()
+{
+	AllZones.Empty();
+
+	Super::Deinitialize();
+}
+
+void UZoneManagerSubsystem::RefreshZoneList()
 {
 	AllZones.Empty();
 
@@ -34,10 +35,10 @@ void AZoneManager::RefreshZoneList()
 		}
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("ZoneManager: Refreshed zone list - %d zones found"), AllZones.Num());
+	UE_LOG(LogTemp, Log, TEXT("ZoneManagerSubsystem: Refreshed zone list - %d zones found"), AllZones.Num());
 }
 
-TArray<ATerrainZone*> AZoneManager::GetZonesByType(ETerrainZone ZoneType) const
+TArray<ATerrainZone*> UZoneManagerSubsystem::GetZonesByType(ETerrainZone ZoneType) const
 {
 	TArray<ATerrainZone*> Result;
 
@@ -52,7 +53,7 @@ TArray<ATerrainZone*> AZoneManager::GetZonesByType(ETerrainZone ZoneType) const
 	return Result;
 }
 
-ATerrainZone* AZoneManager::GetNearestZone(FVector Location, ETerrainZone ZoneType) const
+ATerrainZone* UZoneManagerSubsystem::GetNearestZone(FVector Location, ETerrainZone ZoneType) const
 {
 	ATerrainZone* NearestZone = nullptr;
 	float MinDistance = FLT_MAX;
@@ -73,7 +74,7 @@ ATerrainZone* AZoneManager::GetNearestZone(FVector Location, ETerrainZone ZoneTy
 	return NearestZone;
 }
 
-TArray<ATerrainZone*> AZoneManager::GetZonesWithinRadius(FVector Location, float Radius) const
+TArray<ATerrainZone*> UZoneManagerSubsystem::GetZonesWithinRadius(FVector Location, float Radius) const
 {
 	TArray<ATerrainZone*> Result;
 
@@ -92,13 +93,13 @@ TArray<ATerrainZone*> AZoneManager::GetZonesWithinRadius(FVector Location, float
 	return Result;
 }
 
-ATerrainZone* AZoneManager::GetZoneAtLocation(FVector Location) const
+ATerrainZone* UZoneManagerSubsystem::GetZoneAtLocation(FVector Location) const
 {
 	for (ATerrainZone* Zone : AllZones)
 	{
-		if (Zone && Zone->IsActorInZone(nullptr))
+		if (Zone)
 		{
-			// We need to check using the location directly
+			// Check using the location directly
 			if (Zone->EncompassesPoint(Location))
 			{
 				return Zone;

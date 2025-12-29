@@ -5,8 +5,7 @@
 #include "BaseVillager.h"
 #include "InventoryComponent.h"
 #include "TerrainZone.h"
-#include "ZoneManager.h"
-#include "Kismet/GameplayStatics.h"
+#include "ZoneManagerSubsystem.h"
 #include "BehaviorTree/BlackboardComponent.h"
 
 UBTTask_GatherResource::UBTTask_GatherResource()
@@ -40,19 +39,11 @@ EBTNodeResult::Type UBTTask_GatherResource::ExecuteTask(UBehaviorTreeComponent& 
 		return EBTNodeResult::Failed;
 	}
 
-	// Find ZoneManager
-	TArray<AActor*> FoundActors;
-	UGameplayStatics::GetAllActorsOfClass(Villager->GetWorld(), AZoneManager::StaticClass(), FoundActors);
-
-	if (FoundActors.Num() == 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("GatherResource: No ZoneManager found"));
-		return EBTNodeResult::Failed;
-	}
-
-	AZoneManager* ZoneManager = Cast<AZoneManager>(FoundActors[0]);
+	// Get ZoneManagerSubsystem
+	UZoneManagerSubsystem* ZoneManager = Villager->GetWorld()->GetSubsystem<UZoneManagerSubsystem>();
 	if (!ZoneManager)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("GatherResource: No ZoneManagerSubsystem found"));
 		return EBTNodeResult::Failed;
 	}
 

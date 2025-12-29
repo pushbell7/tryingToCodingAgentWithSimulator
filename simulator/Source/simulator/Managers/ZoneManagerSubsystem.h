@@ -3,27 +3,30 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Subsystems/WorldSubsystem.h"
 #include "SimulatorTypes.h"
-#include "ZoneManager.generated.h"
+#include "ZoneManagerSubsystem.generated.h"
 
 class ATerrainZone;
 
 /**
- * Central manager for all terrain zones in the world
+ * Central manager for all terrain zones in the world as a WorldSubsystem
  * Handles zone queries, management, and future dynamic zone creation
  */
 UCLASS()
-class SIMULATOR_API AZoneManager : public AActor
+class SIMULATOR_API UZoneManagerSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
 
 public:
-	AZoneManager();
+	// USubsystem implementation
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
 
-	virtual void BeginPlay() override;
+	// Refresh zone list (useful for dynamic zones later)
+	UFUNCTION(BlueprintCallable, Category = "Zone Manager")
+	void RefreshZoneList();
 
-public:
 	// Get all zones of a specific type
 	UFUNCTION(BlueprintCallable, Category = "Zone Manager")
 	TArray<ATerrainZone*> GetZonesByType(ETerrainZone ZoneType) const;
@@ -52,7 +55,4 @@ protected:
 	// All zones in the world
 	UPROPERTY()
 	TArray<ATerrainZone*> AllZones;
-
-	// Refresh zone list (useful for dynamic zones later)
-	void RefreshZoneList();
 };

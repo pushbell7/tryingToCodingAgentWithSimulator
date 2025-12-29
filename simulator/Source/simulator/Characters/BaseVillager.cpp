@@ -7,8 +7,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "VillagerAIController.h"
-#include "TurnManager.h"
-#include "Kismet/GameplayStatics.h"
+#include "TurnManagerSubsystem.h"
 #include "InventoryComponent.h"
 #include "House.h"
 #include "TerrainZone.h"
@@ -31,7 +30,6 @@ ABaseVillager::ABaseVillager()
 	CurrentState = EActorState::IDLE;
 	SocialClass = ESocialClass::Commoner;
 	CurrentAction = EActionType::None;
-	TurnManager = nullptr;
 
 	// Assignment system defaults
 	AssignedHome = nullptr;
@@ -83,19 +81,6 @@ void ABaseVillager::BeginPlay()
 	Super::BeginPlay();
 
 	SetMeshColor();
-
-	// Find turn manager in the world
-	TArray<AActor*> FoundActors;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATurnManager::StaticClass(), FoundActors);
-	if (FoundActors.Num() > 0)
-	{
-		TurnManager = Cast<ATurnManager>(FoundActors[0]);
-		UE_LOG(LogTemp, Log, TEXT("%s found TurnManager"), *GetName());
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s could not find TurnManager!"), *GetName());
-	}
 }
 
 void ABaseVillager::SetMeshColor()
@@ -148,9 +133,10 @@ void ABaseVillager::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 
 void ABaseVillager::RequestActionPermission(EActionType ActionType)
 {
+	UTurnManagerSubsystem* TurnManager = GetWorld()->GetSubsystem<UTurnManagerSubsystem>();
 	if (!TurnManager)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s: No TurnManager available"), *GetName());
+		UE_LOG(LogTemp, Warning, TEXT("%s: No TurnManagerSubsystem available"), *GetName());
 		return;
 	}
 
@@ -199,6 +185,7 @@ void ABaseVillager::OnActionPermissionGranted(EActionType ActionType)
 
 void ABaseVillager::CompleteCurrentAction()
 {
+	UTurnManagerSubsystem* TurnManager = GetWorld()->GetSubsystem<UTurnManagerSubsystem>();
 	if (!TurnManager)
 		return;
 

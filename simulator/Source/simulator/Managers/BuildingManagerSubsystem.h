@@ -3,26 +3,24 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Subsystems/WorldSubsystem.h"
 #include "SimulatorTypes.h"
-#include "BuildingManager.generated.h"
+#include "BuildingManagerSubsystem.generated.h"
 
 /**
- * Manager for all buildings in the world
+ * Manager for all buildings in the world as a WorldSubsystem
  * Provides queries for finding buildings, managing construction, etc.
  */
 UCLASS()
-class SIMULATOR_API ABuildingManager : public AActor
+class SIMULATOR_API UBuildingManagerSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
 
 public:
-	ABuildingManager();
+	// USubsystem implementation
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
 
-protected:
-	virtual void BeginPlay() override;
-
-public:
 	// Find all buildings in the world
 	UFUNCTION(BlueprintCallable, Category = "Building Manager")
 	void RefreshBuildingList();
@@ -59,13 +57,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Building Manager")
 	int32 GetBuildingCountByType(EBuildingType BuildingType) const;
 
+	// Get all buildings
+	UFUNCTION(BlueprintCallable, Category = "Building Manager")
+	TArray<class ABaseBuilding*> GetAllBuildings() const { return AllBuildings; }
+
 protected:
 	// Cache of all buildings in the world
 	UPROPERTY()
 	TArray<class ABaseBuilding*> AllBuildings;
 
 	// How often to refresh the building list (in seconds)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building Manager")
 	float RefreshInterval;
 
 	// Timer for periodic refresh

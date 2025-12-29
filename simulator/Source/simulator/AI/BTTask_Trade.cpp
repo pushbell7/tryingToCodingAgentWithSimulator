@@ -6,8 +6,7 @@
 #include "MerchantVillager.h"
 #include "InventoryComponent.h"
 #include "BaseBuilding.h"
-#include "BuildingManager.h"
-#include "Kismet/GameplayStatics.h"
+#include "BuildingManagerSubsystem.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "EngineUtils.h"
 
@@ -37,19 +36,11 @@ EBTNodeResult::Type UBTTask_Trade::ExecuteTask(UBehaviorTreeComponent& OwnerComp
 		return EBTNodeResult::Failed;
 	}
 
-	// Find BuildingManager
-	TArray<AActor*> FoundActors;
-	UGameplayStatics::GetAllActorsOfClass(Villager->GetWorld(), ABuildingManager::StaticClass(), FoundActors);
-
-	ABuildingManager* BuildingManager = nullptr;
-	if (FoundActors.Num() > 0)
-	{
-		BuildingManager = Cast<ABuildingManager>(FoundActors[0]);
-	}
-
+	// Get BuildingManagerSubsystem
+	UBuildingManagerSubsystem* BuildingManager = Villager->GetWorld()->GetSubsystem<UBuildingManagerSubsystem>();
 	if (!BuildingManager)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Trade: No BuildingManager found"));
+		UE_LOG(LogTemp, Warning, TEXT("Trade: No BuildingManagerSubsystem found"));
 		return EBTNodeResult::Failed;
 	}
 

@@ -3,27 +3,25 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Subsystems/WorldSubsystem.h"
 #include "SimulatorTypes.h"
-#include "VillagerManager.generated.h"
+#include "VillagerManagerSubsystem.generated.h"
 
 /**
- * Manager for all villagers in the world
+ * Manager for all villagers in the world as a WorldSubsystem
  * Handles automatic assignment of homes and work zones
  * Tracks population statistics and manages villager lifecycle
  */
 UCLASS()
-class SIMULATOR_API AVillagerManager : public AActor
+class SIMULATOR_API UVillagerManagerSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
 
 public:
-	AVillagerManager();
+	// USubsystem implementation
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
 
-protected:
-	virtual void BeginPlay() override;
-
-public:
 	// Refresh the list of all villagers in the world
 	UFUNCTION(BlueprintCallable, Category = "Villager Manager")
 	void RefreshVillagerList();
@@ -79,11 +77,9 @@ protected:
 	TArray<class ABaseVillager*> AllVillagers;
 
 	// How often to refresh the villager list (in seconds)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Villager Manager")
 	float RefreshInterval;
 
-	// Should auto-assign on BeginPlay?
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Villager Manager")
+	// Should auto-assign on initialization?
 	bool bAutoAssignOnStart;
 
 	// Timer for periodic refresh

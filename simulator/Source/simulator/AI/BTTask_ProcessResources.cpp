@@ -5,8 +5,7 @@
 #include "CraftsmanVillager.h"
 #include "InventoryComponent.h"
 #include "BaseBuilding.h"
-#include "BuildingManager.h"
-#include "Kismet/GameplayStatics.h"
+#include "BuildingManagerSubsystem.h"
 #include "BehaviorTree/BlackboardComponent.h"
 
 UBTTask_ProcessResources::UBTTask_ProcessResources()
@@ -51,20 +50,14 @@ EBTNodeResult::Type UBTTask_ProcessResources::ExecuteTask(UBehaviorTreeComponent
 	}
 	else
 	{
-		// Find BuildingManager
-		TArray<AActor*> FoundActors;
-		UGameplayStatics::GetAllActorsOfClass(Craftsman->GetWorld(), ABuildingManager::StaticClass(), FoundActors);
-
-		if (FoundActors.Num() > 0)
+		// Get BuildingManagerSubsystem
+		UBuildingManagerSubsystem* BuildingManager = Craftsman->GetWorld()->GetSubsystem<UBuildingManagerSubsystem>();
+		if (BuildingManager)
 		{
-			ABuildingManager* BuildingManager = Cast<ABuildingManager>(FoundActors[0]);
-			if (BuildingManager)
-			{
-				TargetWorkshop = BuildingManager->GetNearestBuilding(
-					Craftsman->GetActorLocation(),
-					Recipe.RequiredBuilding
-				);
-			}
+			TargetWorkshop = BuildingManager->GetNearestBuilding(
+				Craftsman->GetActorLocation(),
+				Recipe.RequiredBuilding
+			);
 		}
 	}
 

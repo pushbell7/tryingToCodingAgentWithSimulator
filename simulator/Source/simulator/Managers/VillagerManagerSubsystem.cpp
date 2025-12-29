@@ -1,28 +1,22 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "VillagerManager.h"
+#include "VillagerManagerSubsystem.h"
 #include "BaseVillager.h"
 #include "CraftsmanVillager.h"
 #include "MerchantVillager.h"
 #include "House.h"
 #include "TerrainZone.h"
-#include "BuildingManager.h"
-#include "ZoneManager.h"
+#include "BuildingManagerSubsystem.h"
+#include "ZoneManagerSubsystem.h"
 #include "EngineUtils.h"
-#include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 
-AVillagerManager::AVillagerManager()
+void UVillagerManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
-	PrimaryActorTick.bCanEverTick = false;
+	Super::Initialize(Collection);
 
 	RefreshInterval = 10.0f; // Refresh every 10 seconds
 	bAutoAssignOnStart = true;
-}
-
-void AVillagerManager::BeginPlay()
-{
-	Super::BeginPlay();
 
 	// Initial refresh
 	RefreshVillagerList();
@@ -34,17 +28,41 @@ void AVillagerManager::BeginPlay()
 	}
 
 	// Set up periodic refresh
-	if (RefreshInterval > 0.0f)
+	if (RefreshInterval > 0.0f && GetWorld())
 	{
-		GetWorldTimerManager().SetTimer(RefreshTimerHandle, this, &AVillagerManager::PeriodicRefresh, RefreshInterval, true);
+		GetWorld()->GetTimerManager().SetTimer(
+			RefreshTimerHandle,
+			this,
+			&UVillagerManagerSubsystem::PeriodicRefresh,
+			RefreshInterval,
+			true
+		);
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("VillagerManager initialized - Total population: %d"), AllVillagers.Num());
+	UE_LOG(LogTemp, Log, TEXT("VillagerManagerSubsystem initialized - Total population: %d"), AllVillagers.Num());
 }
 
-void AVillagerManager::RefreshVillagerList()
+void UVillagerManagerSubsystem::Deinitialize()
+{
+	// Clear timer
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(RefreshTimerHandle);
+	}
+
+	AllVillagers.Empty();
+
+	Super::Deinitialize();
+}
+
+void UVillagerManagerSubsystem::RefreshVillagerList()
 {
 	AllVillagers.Empty();
+
+	if (!GetWorld())
+	{
+		return;
+	}
 
 	// Find all villagers in the world
 	for (TActorIterator<ABaseVillager> It(GetWorld()); It; ++It)
@@ -56,12 +74,12 @@ void AVillagerManager::RefreshVillagerList()
 		}
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("VillagerManager: Refreshed villager list - Found %d villagers"), AllVillagers.Num());
+	UE_LOG(LogTemp, Log, TEXT("VillagerManagerSubsystem: Refreshed villager list - Found %d villagers"), AllVillagers.Num());
 }
 
-void AVillagerManager::AutoAssignAll()
+void UVillagerManagerSubsystem::AutoAssignAll()
 {
-	UE_LOG(LogTemp, Log, TEXT("VillagerManager: Starting auto-assignment for %d villagers"), AllVillagers.Num());
+	UE_LOG(LogTemp, Log, TEXT("VillagerManagerSubsystem: Starting auto-assignment for %d villagers"), AllVillagers.Num());
 
 	int32 HomesAssigned = 0;
 	int32 WorkZonesAssigned = 0;
@@ -90,28 +108,22 @@ void AVillagerManager::AutoAssignAll()
 		}
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("VillagerManager: Auto-assignment complete - Homes: %d, Work zones: %d"),
+	UE_LOG(LogTemp, Log, TEXT("VillagerManagerSubsystem: Auto-assignment complete - Homes: %d, Work zones: %d"),
 		HomesAssigned, WorkZonesAssigned);
 }
 
-bool AVillagerManager::AutoAssignHome(ABaseVillager* Villager)
+bool UVillagerManagerSubsystem::AutoAssignHome(ABaseVillager* Villager)
 {
-	if (!Villager)
+	if (!Villager || !GetWorld())
 		return false;
 
-	// Find BuildingManager
-	TArray<AActor*> FoundActors;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuildingManager::StaticClass(), FoundActors);
-
-	if (FoundActors.Num() == 0)
+	// Get BuildingManagerSubsystem
+	UBuildingManagerSubsystem* BuildingManager = GetWorld()->GetSubsystem<UBuildingManagerSubsystem>();
+	if (!BuildingManager)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("VillagerManager: No BuildingManager found"));
+		UE_LOG(LogTemp, Warning, TEXT("VillagerManagerSubsystem: No BuildingManagerSubsystem found"));
 		return false;
 	}
-
-	ABuildingManager* BuildingManager = Cast<ABuildingManager>(FoundActors[0]);
-	if (!BuildingManager)
-		return false;
 
 	// Get all houses
 	TArray<ABaseBuilding*> Buildings = BuildingManager->GetBuildingsByType(EBuildingType::House);
@@ -139,27 +151,21 @@ bool AVillagerManager::AutoAssignHome(ABaseVillager* Villager)
 		return Villager->AssignToHome(BestHouse);
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("VillagerManager: No available house found for %s"), *Villager->VillagerName);
+	UE_LOG(LogTemp, Warning, TEXT("VillagerManagerSubsystem: No available house found for %s"), *Villager->VillagerName);
 	return false;
 }
 
-bool AVillagerManager::AutoAssignWorkZone(ABaseVillager* Villager)
+bool UVillagerManagerSubsystem::AutoAssignWorkZone(ABaseVillager* Villager)
 {
-	if (!Villager)
+	if (!Villager || !GetWorld())
 		return false;
 
 	// Craftsmen are assigned to workshops, not zones
 	ACraftsmanVillager* Craftsman = Cast<ACraftsmanVillager>(Villager);
 	if (Craftsman)
 	{
-		// Find BuildingManager
-		TArray<AActor*> FoundActors;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABuildingManager::StaticClass(), FoundActors);
-
-		if (FoundActors.Num() == 0)
-			return false;
-
-		ABuildingManager* BuildingManager = Cast<ABuildingManager>(FoundActors[0]);
+		// Get BuildingManagerSubsystem
+		UBuildingManagerSubsystem* BuildingManager = GetWorld()->GetSubsystem<UBuildingManagerSubsystem>();
 		if (!BuildingManager)
 			return false;
 
@@ -192,19 +198,13 @@ bool AVillagerManager::AutoAssignWorkZone(ABaseVillager* Villager)
 	}
 
 	// Regular villagers get work zones
-	// Find ZoneManager
-	TArray<AActor*> FoundActors;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AZoneManager::StaticClass(), FoundActors);
-
-	if (FoundActors.Num() == 0)
+	// Get ZoneManagerSubsystem
+	UZoneManagerSubsystem* ZoneManager = GetWorld()->GetSubsystem<UZoneManagerSubsystem>();
+	if (!ZoneManager)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("VillagerManager: No ZoneManager found"));
+		UE_LOG(LogTemp, Warning, TEXT("VillagerManagerSubsystem: No ZoneManagerSubsystem found"));
 		return false;
 	}
-
-	AZoneManager* ZoneManager = Cast<AZoneManager>(FoundActors[0]);
-	if (!ZoneManager)
-		return false;
 
 	// Prefer Farmland zones for regular citizens
 	TArray<ATerrainZone*> Zones = ZoneManager->GetZonesByType(ETerrainZone::Farmland);
@@ -258,11 +258,11 @@ bool AVillagerManager::AutoAssignWorkZone(ABaseVillager* Villager)
 		return Villager->AssignToWorkZone(BestZone);
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("VillagerManager: No available work zone found for %s"), *Villager->VillagerName);
+	UE_LOG(LogTemp, Warning, TEXT("VillagerManagerSubsystem: No available work zone found for %s"), *Villager->VillagerName);
 	return false;
 }
 
-TArray<ABaseVillager*> AVillagerManager::GetVillagersByRole(EVillagerRole VillagerRole) const
+TArray<ABaseVillager*> UVillagerManagerSubsystem::GetVillagersByRole(EVillagerRole VillagerRole) const
 {
 	TArray<ABaseVillager*> Result;
 
@@ -277,7 +277,7 @@ TArray<ABaseVillager*> AVillagerManager::GetVillagersByRole(EVillagerRole Villag
 	return Result;
 }
 
-TArray<ABaseVillager*> AVillagerManager::GetVillagersBySocialClass(ESocialClass VillagerSocialClass) const
+TArray<ABaseVillager*> UVillagerManagerSubsystem::GetVillagersBySocialClass(ESocialClass VillagerSocialClass) const
 {
 	TArray<ABaseVillager*> Result;
 
@@ -292,7 +292,7 @@ TArray<ABaseVillager*> AVillagerManager::GetVillagersBySocialClass(ESocialClass 
 	return Result;
 }
 
-TArray<ABaseVillager*> AVillagerManager::GetHomelessVillagers() const
+TArray<ABaseVillager*> UVillagerManagerSubsystem::GetHomelessVillagers() const
 {
 	TArray<ABaseVillager*> Result;
 
@@ -307,7 +307,7 @@ TArray<ABaseVillager*> AVillagerManager::GetHomelessVillagers() const
 	return Result;
 }
 
-TArray<ABaseVillager*> AVillagerManager::GetUnemployedVillagers() const
+TArray<ABaseVillager*> UVillagerManagerSubsystem::GetUnemployedVillagers() const
 {
 	TArray<ABaseVillager*> Result;
 
@@ -331,7 +331,7 @@ TArray<ABaseVillager*> AVillagerManager::GetUnemployedVillagers() const
 	return Result;
 }
 
-int32 AVillagerManager::GetPopulationByRole(EVillagerRole VillagerRole) const
+int32 UVillagerManagerSubsystem::GetPopulationByRole(EVillagerRole VillagerRole) const
 {
 	int32 Count = 0;
 
@@ -346,17 +346,17 @@ int32 AVillagerManager::GetPopulationByRole(EVillagerRole VillagerRole) const
 	return Count;
 }
 
-int32 AVillagerManager::GetHomelessCount() const
+int32 UVillagerManagerSubsystem::GetHomelessCount() const
 {
 	return GetHomelessVillagers().Num();
 }
 
-int32 AVillagerManager::GetUnemployedCount() const
+int32 UVillagerManagerSubsystem::GetUnemployedCount() const
 {
 	return GetUnemployedVillagers().Num();
 }
 
-void AVillagerManager::PeriodicRefresh()
+void UVillagerManagerSubsystem::PeriodicRefresh()
 {
 	RefreshVillagerList();
 

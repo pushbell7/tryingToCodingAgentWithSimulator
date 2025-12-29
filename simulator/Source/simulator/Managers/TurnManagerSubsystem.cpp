@@ -1,30 +1,30 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "TurnManager.h"
+#include "TurnManagerSubsystem.h"
 #include "BaseVillager.h"
-#include "Kismet/GameplayStatics.h"
 
-ATurnManager::ATurnManager()
+void UTurnManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
-	PrimaryActorTick.bCanEverTick = true;
+	Super::Initialize(Collection);
 
 	MaxSimultaneousActions = 10;  // 10 actors can act per turn
 	TurnDuration = 1.0f;          // Process requests every 1 second
 	TurnTimer = 0.0f;
-}
 
-void ATurnManager::BeginPlay()
-{
-	Super::BeginPlay();
-
-	UE_LOG(LogTemp, Warning, TEXT("TurnManager initialized - Max Actions: %d, Turn Duration: %.2f"),
+	UE_LOG(LogTemp, Log, TEXT("TurnManagerSubsystem initialized - Max Actions: %d, Turn Duration: %.2f"),
 		MaxSimultaneousActions, TurnDuration);
 }
 
-void ATurnManager::Tick(float DeltaTime)
+void UTurnManagerSubsystem::Deinitialize()
 {
-	Super::Tick(DeltaTime);
+	PendingRequests.Empty();
+	ActiveActors.Empty();
 
+	Super::Deinitialize();
+}
+
+void UTurnManagerSubsystem::Tick(float DeltaTime)
+{
 	TurnTimer += DeltaTime;
 
 	// Process action requests every turn
@@ -35,7 +35,12 @@ void ATurnManager::Tick(float DeltaTime)
 	}
 }
 
-void ATurnManager::RequestAction(ABaseVillager* Actor, EActionType ActionType, ESocialClass SocialClass)
+TStatId UTurnManagerSubsystem::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(UTurnManagerSubsystem, STATGROUP_Tickables);
+}
+
+void UTurnManagerSubsystem::RequestAction(ABaseVillager* Actor, EActionType ActionType, ESocialClass SocialClass)
 {
 	if (!Actor)
 		return;
@@ -70,7 +75,7 @@ void ATurnManager::RequestAction(ABaseVillager* Actor, EActionType ActionType, E
 		*Actor->GetName(), (int32)ActionType, NewRequest.Priority);
 }
 
-void ATurnManager::NotifyActionComplete(ABaseVillager* Actor)
+void UTurnManagerSubsystem::NotifyActionComplete(ABaseVillager* Actor)
 {
 	if (!Actor)
 		return;
@@ -81,18 +86,18 @@ void ATurnManager::NotifyActionComplete(ABaseVillager* Actor)
 		*Actor->GetName(), ActiveActors.Num());
 }
 
-void ATurnManager::ProcessActionRequests()
+void UTurnManagerSubsystem::ProcessActionRequests()
 {
 	if (PendingRequests.Num() == 0)
 		return;
 
-	UE_LOG(LogTemp, Warning, TEXT("Processing %d action requests - Active: %d/%d"),
+	UE_LOG(LogTemp, Verbose, TEXT("Processing %d action requests - Active: %d/%d"),
 		PendingRequests.Num(), ActiveActors.Num(), MaxSimultaneousActions);
 
 	GrantActionPermissions();
 }
 
-void ATurnManager::GrantActionPermissions()
+void UTurnManagerSubsystem::GrantActionPermissions()
 {
 	// Sort requests by priority
 	SortRequestsByPriority();
@@ -113,7 +118,7 @@ void ATurnManager::GrantActionPermissions()
 			// Notify actor (will be implemented in BaseVillager)
 			// Request.RequestingActor->OnActionPermissionGranted(Request.ActionType);
 
-			UE_LOG(LogTemp, Warning, TEXT("GRANTED: %s - Action: %d, Priority: %.2f"),
+			UE_LOG(LogTemp, Verbose, TEXT("GRANTED: %s - Action: %d, Priority: %.2f"),
 				*Request.RequestingActor->GetName(), (int32)Request.ActionType, Request.Priority);
 
 			GrantedCount++;
@@ -123,11 +128,11 @@ void ATurnManager::GrantActionPermissions()
 		PendingRequests.RemoveAt(i);
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Granted %d actions - Active: %d/%d, Remaining requests: %d"),
+	UE_LOG(LogTemp, Verbose, TEXT("Granted %d actions - Active: %d/%d, Remaining requests: %d"),
 		GrantedCount, ActiveActors.Num(), MaxSimultaneousActions, PendingRequests.Num());
 }
 
-void ATurnManager::SortRequestsByPriority()
+void UTurnManagerSubsystem::SortRequestsByPriority()
 {
 	PendingRequests.Sort([](const FActionRequest& A, const FActionRequest& B)
 	{
@@ -135,7 +140,7 @@ void ATurnManager::SortRequestsByPriority()
 	});
 }
 
-float ATurnManager::CalculatePriority(ESocialClass SocialClass, EActionType ActionType)
+float UTurnManagerSubsystem::CalculatePriority(ESocialClass SocialClass, EActionType ActionType)
 {
 	float BasePriority = 0.0f;
 

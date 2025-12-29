@@ -114,8 +114,4 @@ protected:
 
 	// Set mesh color based on role
 	void SetMeshColor();
-
-	// Reference to turn manager
-	UPROPERTY()
-	class ATurnManager* TurnManager;
 };

@@ -3,9 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Subsystems/WorldSubsystem.h"
 #include "SimulatorTypes.h"
-#include "TurnManager.generated.h"
+#include "TurnManagerSubsystem.generated.h"
 
 /**
  * Action request from an actor
@@ -36,18 +36,22 @@ struct FActionRequest
 };
 
 /**
- * Manages turn-based action system
+ * Manages turn-based action system as a WorldSubsystem
  * Actors request actions, manager grants permission based on priority
  */
 UCLASS()
-class SIMULATOR_API ATurnManager : public AActor
+class SIMULATOR_API UTurnManagerSubsystem : public UTickableWorldSubsystem
 {
 	GENERATED_BODY()
 
 public:
-	ATurnManager();
+	// USubsystem implementation
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
 
+	// UTickableWorldSubsystem implementation
 	virtual void Tick(float DeltaTime) override;
+	virtual TStatId GetStatId() const override;
 
 	// Request action permission
 	UFUNCTION(BlueprintCallable, Category = "Turn Manager")
@@ -57,14 +61,26 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Turn Manager")
 	void NotifyActionComplete(class ABaseVillager* Actor);
 
-protected:
-	virtual void BeginPlay() override;
+	// Get current active actor count
+	UFUNCTION(BlueprintCallable, Category = "Turn Manager")
+	int32 GetActiveActorCount() const { return ActiveActors.Num(); }
 
+	// Get pending request count
+	UFUNCTION(BlueprintCallable, Category = "Turn Manager")
+	int32 GetPendingRequestCount() const { return PendingRequests.Num(); }
+
+protected:
 	// Process pending action requests
 	void ProcessActionRequests();
 
 	// Grant action permission to highest priority actors
 	void GrantActionPermissions();
+
+	// Sort requests by priority
+	void SortRequestsByPriority();
+
+	// Calculate priority for an action request
+	float CalculatePriority(ESocialClass SocialClass, EActionType ActionType);
 
 private:
 	// Pending action requests (queue)
@@ -76,19 +92,11 @@ private:
 	TArray<class ABaseVillager*> ActiveActors;
 
 	// Maximum number of actors that can act simultaneously
-	UPROPERTY(EditAnywhere, Category = "Turn Manager")
 	int32 MaxSimultaneousActions;
 
 	// Turn duration (how often to process requests)
-	UPROPERTY(EditAnywhere, Category = "Turn Manager")
 	float TurnDuration;
 
 	// Timer for turn processing
 	float TurnTimer;
-
-	// Sort requests by priority
-	void SortRequestsByPriority();
-
-	// Calculate priority for an action request
-	float CalculatePriority(ESocialClass SocialClass, EActionType ActionType);
 };

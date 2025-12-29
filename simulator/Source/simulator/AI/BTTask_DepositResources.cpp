@@ -5,8 +5,7 @@
 #include "BaseVillager.h"
 #include "InventoryComponent.h"
 #include "BaseBuilding.h"
-#include "BuildingManager.h"
-#include "Kismet/GameplayStatics.h"
+#include "BuildingManagerSubsystem.h"
 #include "BehaviorTree/BlackboardComponent.h"
 
 UBTTask_DepositResources::UBTTask_DepositResources()
@@ -39,19 +38,11 @@ EBTNodeResult::Type UBTTask_DepositResources::ExecuteTask(UBehaviorTreeComponent
 		return EBTNodeResult::Failed;
 	}
 
-	// Find BuildingManager
-	TArray<AActor*> FoundActors;
-	UGameplayStatics::GetAllActorsOfClass(Villager->GetWorld(), ABuildingManager::StaticClass(), FoundActors);
-
-	if (FoundActors.Num() == 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("DepositResources: No BuildingManager found"));
-		return EBTNodeResult::Failed;
-	}
-
-	ABuildingManager* BuildingManager = Cast<ABuildingManager>(FoundActors[0]);
+	// Get BuildingManagerSubsystem
+	UBuildingManagerSubsystem* BuildingManager = Villager->GetWorld()->GetSubsystem<UBuildingManagerSubsystem>();
 	if (!BuildingManager)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("DepositResources: No BuildingManagerSubsystem found"));
 		return EBTNodeResult::Failed;
 	}
 
