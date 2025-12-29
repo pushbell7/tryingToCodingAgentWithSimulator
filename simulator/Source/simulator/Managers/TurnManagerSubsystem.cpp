@@ -71,7 +71,7 @@ void UTurnManagerSubsystem::RequestAction(ABaseVillager* Actor, EActionType Acti
 
 	PendingRequests.Add(NewRequest);
 
-	UE_LOG(LogTemp, Verbose, TEXT("%s requested action (Type: %d, Priority: %.2f)"),
+	UE_LOG(LogTemp, Warning, TEXT("TurnManager REQUEST: %s - Action: %d, Priority: %.2f"),
 		*Actor->GetName(), (int32)ActionType, NewRequest.Priority);
 }
 
@@ -82,7 +82,7 @@ void UTurnManagerSubsystem::NotifyActionComplete(ABaseVillager* Actor)
 
 	ActiveActors.Remove(Actor);
 
-	UE_LOG(LogTemp, Verbose, TEXT("%s completed action - Active actors: %d"),
+	UE_LOG(LogTemp, Warning, TEXT("TurnManager COMPLETE: %s - Active actors: %d"),
 		*Actor->GetName(), ActiveActors.Num());
 }
 
@@ -91,7 +91,7 @@ void UTurnManagerSubsystem::ProcessActionRequests()
 	if (PendingRequests.Num() == 0)
 		return;
 
-	UE_LOG(LogTemp, Verbose, TEXT("Processing %d action requests - Active: %d/%d"),
+	UE_LOG(LogTemp, Warning, TEXT("TurnManager PROCESSING: %d requests - Active: %d/%d"),
 		PendingRequests.Num(), ActiveActors.Num(), MaxSimultaneousActions);
 
 	GrantActionPermissions();
@@ -115,10 +115,10 @@ void UTurnManagerSubsystem::GrantActionPermissions()
 			// Grant permission - actor will start their action
 			ActiveActors.Add(Request.RequestingActor);
 
-			// Notify actor (will be implemented in BaseVillager)
-			// Request.RequestingActor->OnActionPermissionGranted(Request.ActionType);
+			// Notify actor to start their action
+			Request.RequestingActor->OnActionPermissionGranted(Request.ActionType);
 
-			UE_LOG(LogTemp, Verbose, TEXT("GRANTED: %s - Action: %d, Priority: %.2f"),
+			UE_LOG(LogTemp, Warning, TEXT("TurnManager GRANTED: %s - Action: %d, Priority: %.2f"),
 				*Request.RequestingActor->GetName(), (int32)Request.ActionType, Request.Priority);
 
 			GrantedCount++;
@@ -128,8 +128,11 @@ void UTurnManagerSubsystem::GrantActionPermissions()
 		PendingRequests.RemoveAt(i);
 	}
 
-	UE_LOG(LogTemp, Verbose, TEXT("Granted %d actions - Active: %d/%d, Remaining requests: %d"),
-		GrantedCount, ActiveActors.Num(), MaxSimultaneousActions, PendingRequests.Num());
+	if (GrantedCount > 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TurnManager SUMMARY: Granted %d actions - Active: %d/%d, Remaining: %d"),
+			GrantedCount, ActiveActors.Num(), MaxSimultaneousActions, PendingRequests.Num());
+	}
 }
 
 void UTurnManagerSubsystem::SortRequestsByPriority()
