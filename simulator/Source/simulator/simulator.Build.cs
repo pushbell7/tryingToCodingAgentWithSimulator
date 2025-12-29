@@ -18,7 +18,9 @@ public class simulator : ModuleRules
 			"simulator/Managers",
 			"simulator/Core",
 			"simulator/World",
-			"simulator/Buildings"
+			"simulator/Buildings",
+			"simulator/Villagers",
+			"simulator/Military"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
