@@ -118,6 +118,39 @@ struct FResourceStack
 };
 
 /**
+ * Construction cost for buildings
+ * Defines resources and labor required to construct a building
+ */
+USTRUCT(BlueprintType)
+struct FConstructionCost
+{
+	GENERATED_BODY()
+
+	// Resources required for construction
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
+	TArray<FResourceStack> RequiredResources;
+
+	// Amount of work required (in work units)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
+	float RequiredWorkAmount;
+
+	// Maximum number of workers that can work simultaneously
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Construction")
+	int32 MaxWorkers;
+
+	FConstructionCost()
+		: RequiredWorkAmount(100.0f)
+		, MaxWorkers(5)
+	{}
+
+	FConstructionCost(TArray<FResourceStack> InResources, float InWork, int32 InWorkers)
+		: RequiredResources(InResources)
+		, RequiredWorkAmount(InWork)
+		, MaxWorkers(InWorkers)
+	{}
+};
+
+/**
  * Building types for settlement zones
  */
 UENUM(BlueprintType)

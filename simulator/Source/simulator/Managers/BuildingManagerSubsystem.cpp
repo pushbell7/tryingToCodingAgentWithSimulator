@@ -3,6 +3,7 @@
 #include "BuildingManagerSubsystem.h"
 #include "BaseBuilding.h"
 #include "ConstructionSite.h"
+#include "ResourceManagerSubsystem.h"
 #include "EngineUtils.h"
 #include "TimerManager.h"
 
@@ -247,6 +248,50 @@ AConstructionSite* UBuildingManagerSubsystem::CreateConstructionSite(
 		return nullptr;
 	}
 
+	// 건물의 기본 객체에서 건설 비용 가져오기
+	ABaseBuilding* DefaultBuilding = BuildingClass->GetDefaultObject<ABaseBuilding>();
+	if (!DefaultBuilding)
+	{
+		UE_LOG(LogTemp, Error, TEXT("BuildingManagerSubsystem: Cannot get default building object"));
+		return nullptr;
+	}
+
+	FConstructionCost Cost = DefaultBuilding->ConstructionCost;
+
+	// 파라미터로 전달된 값이 있으면 오버라이드
+	if (RequiredWork > 0.0f)
+	{
+		Cost.RequiredWorkAmount = RequiredWork;
+	}
+	if (MaxWorkers > 0)
+	{
+		Cost.MaxWorkers = MaxWorkers;
+	}
+
+	// ResourceManagerSubsystem에서 자원 확인 및 차감
+	UResourceManagerSubsystem* ResourceManager = GetWorld()->GetSubsystem<UResourceManagerSubsystem>();
+	if (!ResourceManager)
+	{
+		UE_LOG(LogTemp, Error, TEXT("BuildingManagerSubsystem: No ResourceManagerSubsystem found"));
+		return nullptr;
+	}
+
+	// 자원이 충분한지 확인
+	if (!ResourceManager->CanAffordConstruction(Cost))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BuildingManagerSubsystem: Not enough resources for %s construction"),
+			*DefaultBuilding->BuildingName);
+		ResourceManager->LogResourceStatus();
+		return nullptr;
+	}
+
+	// 자원 차감
+	if (!ResourceManager->PayConstructionCost(Cost))
+	{
+		UE_LOG(LogTemp, Error, TEXT("BuildingManagerSubsystem: Failed to pay construction cost"));
+		return nullptr;
+	}
+
 	// 건설 현장 스폰
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
@@ -263,28 +308,24 @@ AConstructionSite* UBuildingManagerSubsystem::CreateConstructionSite(
 		// 건설 현장 설정
 		NewSite->BuildingClass = BuildingClass;
 		NewSite->BuildingType = BuildingType;
-		NewSite->RequiredWorkAmount = RequiredWork;
-		NewSite->MaxWorkers = MaxWorkers;
+		NewSite->RequiredWorkAmount = Cost.RequiredWorkAmount;
+		NewSite->MaxWorkers = Cost.MaxWorkers;
 		NewSite->ConstructionLocation = Location;
-
-		// 건물 이름 가져오기 (기본 객체에서)
-		ABaseBuilding* DefaultBuilding = BuildingClass->GetDefaultObject<ABaseBuilding>();
-		if (DefaultBuilding)
-		{
-			NewSite->BuildingName = FString::Printf(TEXT("%s (Construction)"), *DefaultBuilding->BuildingName);
-		}
+		NewSite->BuildingName = FString::Printf(TEXT("%s (Construction)"), *DefaultBuilding->BuildingName);
 
 		// 캐시에 추가
 		ConstructionSites.Add(NewSite);
 
 		UE_LOG(LogTemp, Warning, TEXT("BuildingManagerSubsystem: Created construction site for %s at %s (Work: %.0f, Workers: %d)"),
-			*NewSite->BuildingName, *Location.ToString(), RequiredWork, MaxWorkers);
+			*NewSite->BuildingName, *Location.ToString(), Cost.RequiredWorkAmount, Cost.MaxWorkers);
 
 		return NewSite;
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("BuildingManagerSubsystem: Failed to spawn construction site"));
+		// 건설 현장 스폰 실패 시 자원 반환
+		UE_LOG(LogTemp, Error, TEXT("BuildingManagerSubsystem: Failed to spawn construction site, refunding resources"));
+		ResourceManager->RefundConstructionCost(Cost, Location);
 		return nullptr;
 	}
 }
@@ -320,6 +361,21 @@ bool UBuildingManagerSubsystem::CancelConstruction(AConstructionSite* Site)
 	if (!Site)
 	{
 		return false;
+	}
+
+	// 자원 반환
+	if (Site->BuildingClass && GetWorld())
+	{
+		ABaseBuilding* DefaultBuilding = Site->BuildingClass->GetDefaultObject<ABaseBuilding>();
+		if (DefaultBuilding)
+		{
+			UResourceManagerSubsystem* ResourceManager = GetWorld()->GetSubsystem<UResourceManagerSubsystem>();
+			if (ResourceManager)
+			{
+				ResourceManager->RefundConstructionCost(DefaultBuilding->ConstructionCost, Site->GetConstructionLocation());
+				UE_LOG(LogTemp, Warning, TEXT("BuildingManagerSubsystem: Refunded construction cost for %s"), *Site->BuildingName);
+			}
+		}
 	}
 
 	ConstructionSites.Remove(Site);

@@ -51,6 +51,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Building")
 	int32 CurrentWorkers;
 
+	// Construction cost for this building type
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building|Construction")
+	FConstructionCost ConstructionCost;
+
 	// Check if building can accept resources
 	UFUNCTION(BlueprintCallable, Category = "Building")
 	virtual bool CanAcceptResources() const;
