@@ -61,10 +61,47 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Building Manager")
 	TArray<class ABaseBuilding*> GetAllBuildings() const { return AllBuildings; }
 
+	// Register a new building (called when construction completes or building is spawned)
+	UFUNCTION(BlueprintCallable, Category = "Building Manager")
+	void RegisterBuilding(class ABaseBuilding* Building);
+
+	// Unregister a building (called when building is destroyed)
+	UFUNCTION(BlueprintCallable, Category = "Building Manager")
+	void UnregisterBuilding(class ABaseBuilding* Building);
+
+	// === Construction Management ===
+
+	// Create a construction site for a new building
+	UFUNCTION(BlueprintCallable, Category = "Building Manager|Construction")
+	class AConstructionSite* CreateConstructionSite(
+		FVector Location,
+		FRotator Rotation,
+		TSubclassOf<class ABaseBuilding> BuildingClass,
+		EBuildingType BuildingType,
+		float RequiredWork = 100.0f,
+		int32 MaxWorkers = 5
+	);
+
+	// Get all active construction sites
+	UFUNCTION(BlueprintCallable, Category = "Building Manager|Construction")
+	TArray<class AConstructionSite*> GetAllConstructionSites() const;
+
+	// Get nearest construction site
+	UFUNCTION(BlueprintCallable, Category = "Building Manager|Construction")
+	class AConstructionSite* GetNearestConstructionSite(FVector Location) const;
+
+	// Cancel construction (destroys the construction site)
+	UFUNCTION(BlueprintCallable, Category = "Building Manager|Construction")
+	bool CancelConstruction(class AConstructionSite* Site);
+
 protected:
 	// Cache of all buildings in the world
 	UPROPERTY()
 	TArray<class ABaseBuilding*> AllBuildings;
+
+	// Cache of all active construction sites
+	UPROPERTY()
+	TArray<class AConstructionSite*> ConstructionSites;
 
 	// How often to refresh the building list (in seconds)
 	float RefreshInterval;
@@ -74,4 +111,7 @@ protected:
 
 	// Periodic refresh function
 	void PeriodicRefresh();
+
+	// Refresh construction sites list
+	void RefreshConstructionSites();
 };
