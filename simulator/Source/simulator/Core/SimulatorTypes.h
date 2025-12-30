@@ -186,14 +186,22 @@ enum class EBuildingType : uint8
 	Warehouse       UMETA(DisplayName = "Warehouse"),      // General storage for all resources
 	Granary         UMETA(DisplayName = "Granary"),        // Food storage only
 
-	// Processing - Tier 1 to Tier 2
+	// Tier 1 Production (Raw materials - labor only)
+	Farm            UMETA(DisplayName = "Farm"),           // Produces Food
+	Pasture         UMETA(DisplayName = "Pasture"),        // Produces Meat
+	Lumbercamp      UMETA(DisplayName = "Lumbercamp"),     // Produces Wood
+	Quarry          UMETA(DisplayName = "Quarry"),         // Produces Stone
+	IronMine        UMETA(DisplayName = "Iron Mine"),      // Produces Iron
+	FishingHut      UMETA(DisplayName = "Fishing Hut"),    // Produces Fish
+
+	// Tier 2 Processing (Raw -> Processed)
 	Mill            UMETA(DisplayName = "Mill"),           // Food -> Bread
 	Bakery          UMETA(DisplayName = "Bakery"),         // Food -> Bread (alternative)
 	Tannery         UMETA(DisplayName = "Tannery"),        // Meat -> Leather
 	Sawmill         UMETA(DisplayName = "Sawmill"),        // Wood -> Planks
 	Blacksmith      UMETA(DisplayName = "Blacksmith"),     // Iron + Wood -> Tools/Weapons
 
-	// Processing - Tier 2 to Tier 3
+	// Tier 3 Processing (Processed -> Luxury)
 	Brewery         UMETA(DisplayName = "Brewery"),        // Food -> Ale
 	Weaver          UMETA(DisplayName = "Weaver"),         // -> Cloth
 

@@ -215,18 +215,60 @@ void ATerritory::CalculateProduction()
 {
 	ProductionPerTurn.Empty();
 
-	// TODO: 건물별 생산량 집계
-	// 예: 농장 -> 식량, 광산 -> 광물, 작업장 -> 제품 등
-
-	for (ABaseBuilding* Building : Buildings)
+	if (TerritoryState != ETerritoryState::Owned)
 	{
-		if (!Building || !Building->bIsOperational) continue;
-
-		// 건물 타입별 생산
-		// 현재는 예시 코드
+		// Only owned territories produce
+		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Territory %s: Production calculated"), *TerritoryName);
+	// Aggregate production from all buildings
+	for (ABaseBuilding* Building : Buildings)
+	{
+		if (!Building || !Building->bIsOperational || !Building->bCanProduce)
+			continue;
+
+		// Get production from this building
+		TMap<EResourceType, int32> BuildingProduction = Building->CalculateProduction();
+
+		// Add to territory total
+		for (const auto& Pair : BuildingProduction)
+		{
+			if (!ProductionPerTurn.Contains(Pair.Key))
+			{
+				ProductionPerTurn.Add(Pair.Key, 0);
+			}
+			ProductionPerTurn[Pair.Key] += Pair.Value;
+		}
+
+		// Log individual building production
+		if (BuildingProduction.Num() > 0)
+		{
+			float Efficiency = Building->CalculateLaborEfficiency();
+			UE_LOG(LogTemp, Log, TEXT("  %s (Workers: %d/%d, Efficiency: %.0f%%) produces:"),
+				*Building->BuildingName, Building->CurrentWorkers, Building->OptimalWorkerCount, Efficiency * 100.0f);
+
+			for (const auto& Pair : BuildingProduction)
+			{
+				UE_LOG(LogTemp, Log, TEXT("    - %s: %d"),
+					*UEnum::GetValueAsString(Pair.Key), Pair.Value);
+			}
+		}
+	}
+
+	// Log total production
+	if (ProductionPerTurn.Num() > 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Territory %s: Total production this turn:"), *TerritoryName);
+		for (const auto& Pair : ProductionPerTurn)
+		{
+			UE_LOG(LogTemp, Log, TEXT("  - %s: %d"),
+				*UEnum::GetValueAsString(Pair.Key), Pair.Value);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("Territory %s: No production this turn"), *TerritoryName);
+	}
 }
 
 void ATerritory::CalculateConsumption()

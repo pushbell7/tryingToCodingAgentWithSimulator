@@ -55,6 +55,28 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building|Construction")
 	FConstructionCost ConstructionCost;
 
+	// === Production System ===
+
+	// Production recipe for this building (what it produces)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building|Production")
+	FCraftingRecipe ProductionRecipe;
+
+	// Optimal number of workers for 100% efficiency
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building|Production")
+	int32 OptimalWorkerCount;
+
+	// Can this building produce resources?
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building|Production")
+	bool bCanProduce;
+
+	// Calculate production output based on current workers
+	UFUNCTION(BlueprintCallable, Category = "Building|Production")
+	TMap<EResourceType, int32> CalculateProduction();
+
+	// Calculate labor efficiency (0.0 - 1.0+)
+	UFUNCTION(BlueprintCallable, Category = "Building|Production")
+	float CalculateLaborEfficiency() const;
+
 	// Check if building can accept resources
 	UFUNCTION(BlueprintCallable, Category = "Building")
 	virtual bool CanAcceptResources() const;

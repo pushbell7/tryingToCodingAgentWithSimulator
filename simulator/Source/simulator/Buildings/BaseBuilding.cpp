@@ -26,6 +26,10 @@ ABaseBuilding::ABaseBuilding()
 	bIsOperational = true;
 	MaxWorkers = 1;
 	CurrentWorkers = 0;
+
+	// Production defaults
+	bCanProduce = false;
+	OptimalWorkerCount = 3;
 }
 
 void ABaseBuilding::BeginPlay()
@@ -190,4 +194,58 @@ bool ABaseBuilding::RemoveWorker(ABaseVillager* Worker)
 bool ABaseBuilding::HasAvailableWorkerSlots() const
 {
 	return CurrentWorkers < MaxWorkers;
+}
+
+float ABaseBuilding::CalculateLaborEfficiency() const
+{
+	if (OptimalWorkerCount <= 0 || CurrentWorkers <= 0)
+		return 0.0f;
+
+	if (CurrentWorkers <= OptimalWorkerCount)
+	{
+		// Under optimal: efficiency scales linearly from 0 to 100%
+		// 1 worker / 3 optimal = 33%, 2/3 = 66%, 3/3 = 100%
+		return (float)CurrentWorkers / (float)OptimalWorkerCount;
+	}
+	else
+	{
+		// Over optimal: diminishing returns
+		// 4 workers / 3 optimal = overcrowding penalty
+		// Formula: 1.0 - ((excess / optimal) * 0.2)
+		// 4/3 = 1.33 -> excess = 1 -> 1.0 - (1/3 * 0.2) = 0.93 (93%)
+		// 6/3 = 2.0 -> excess = 3 -> 1.0 - (3/3 * 0.2) = 0.8 (80%)
+		int32 Excess = CurrentWorkers - OptimalWorkerCount;
+		float Penalty = ((float)Excess / (float)OptimalWorkerCount) * 0.2f;
+		return FMath::Max(0.5f, 1.0f - Penalty); // Minimum 50% efficiency
+	}
+}
+
+TMap<EResourceType, int32> ABaseBuilding::CalculateProduction()
+{
+	TMap<EResourceType, int32> Production;
+
+	// Can't produce if not operational or no recipe
+	if (!bIsOperational || !bCanProduce)
+		return Production;
+
+	// No workers = no production
+	if (CurrentWorkers <= 0)
+		return Production;
+
+	// Calculate efficiency
+	float Efficiency = CalculateLaborEfficiency();
+
+	// Apply efficiency to output resources
+	for (const FResourceStack& Output : ProductionRecipe.OutputResources)
+	{
+		int32 BaseProduction = Output.Quantity;
+		int32 ActualProduction = FMath::RoundToInt(BaseProduction * Efficiency);
+
+		if (ActualProduction > 0)
+		{
+			Production.Add(Output.ResourceType, ActualProduction);
+		}
+	}
+
+	return Production;
 }
