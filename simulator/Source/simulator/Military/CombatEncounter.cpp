@@ -3,6 +3,7 @@
 #include "CombatEncounter.h"
 #include "MilitaryUnit.h"
 #include "SoldierVillager.h"
+#include "Caravan.h"
 #include "Particles/ParticleSystemComponent.h"
 
 ACombatEncounter::ACombatEncounter()
@@ -166,6 +167,12 @@ void ACombatEncounter::EndCombat()
 	if (CombatEffectComponent)
 	{
 		CombatEffectComponent->Deactivate();
+	}
+
+	// 상단 약탈 처리
+	if (InvolvedCaravans.Num() > 0)
+	{
+		LootDefeatedCaravans();
 	}
 
 	// 승자 로그
@@ -392,4 +399,83 @@ FCombatParticipant* ACombatEncounter::FindParticipant(AMilitaryUnit* Unit)
 			return &P;
 	}
 	return nullptr;
+}
+
+void ACombatEncounter::AddCaravan(ACaravan* Caravan)
+{
+	if (Caravan && !InvolvedCaravans.Contains(Caravan))
+	{
+		InvolvedCaravans.Add(Caravan);
+		Caravan->EnterCombat(this);
+
+		UE_LOG(LogTemp, Log, TEXT("Caravan added to combat"));
+	}
+}
+
+void ACombatEncounter::RemoveCaravan(ACaravan* Caravan)
+{
+	InvolvedCaravans.Remove(Caravan);
+}
+
+void ACombatEncounter::LootDefeatedCaravans()
+{
+	AMilitaryUnit* Winner = GetWinner();
+
+	if (!Winner)
+	{
+		// 무승부 또는 전멸 - 모든 상단 파괴
+		for (ACaravan* Caravan : InvolvedCaravans)
+		{
+			if (Caravan)
+			{
+				Caravan->GetLooted(1.0f); // 100% 약탈
+				Caravan->LeaveCombat(false);
+			}
+		}
+		return;
+	}
+
+	// 승자의 팩션 ID 확인
+	int32 WinnerFactionID = -1;
+
+	// TODO: MilitaryUnit에 OwnerFactionID 추가 필요
+	// 현재는 상단의 호위 부대로 판단
+	for (ACaravan* Caravan : InvolvedCaravans)
+	{
+		if (Caravan && Caravan->GuardUnit == Winner)
+		{
+			WinnerFactionID = Caravan->OwnerFactionID;
+			break;
+		}
+	}
+
+	// 패배한 상단들 약탈
+	for (ACaravan* Caravan : InvolvedCaravans)
+	{
+		if (!Caravan) continue;
+
+		// 승자의 상단은 약탈하지 않음
+		if (Caravan->OwnerFactionID == WinnerFactionID)
+		{
+			Caravan->LeaveCombat(true); // 승리
+			continue;
+		}
+
+		// 패배한 상단 약탈 (50% 약탈)
+		TMap<EResourceType, int32> LootedResources = Caravan->GetLooted(0.5f);
+
+		UE_LOG(LogTemp, Warning, TEXT("Caravan looted! Attacker gained:"));
+		for (const auto& Pair : LootedResources)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("  - %d %s"),
+				Pair.Value, *UEnum::GetValueAsString(Pair.Key));
+		}
+
+		// TODO: 약탈한 자원을 승자에게 전달
+		// 현재는 로그만 출력
+
+		Caravan->LeaveCombat(false); // 패배
+	}
+
+	InvolvedCaravans.Empty();
 }

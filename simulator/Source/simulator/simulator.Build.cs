@@ -20,7 +20,8 @@ public class simulator : ModuleRules
 			"simulator/World",
 			"simulator/Buildings",
 			"simulator/Villagers",
-			"simulator/Military"
+			"simulator/Military",
+			"simulator/Economy"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

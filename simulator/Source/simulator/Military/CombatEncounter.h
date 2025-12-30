@@ -160,6 +160,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	class AMilitaryUnit* GetWinner() const;
 
+	// === Caravan Combat ===
+
+	// 이 전투에 연루된 상단들 (약탈 대상)
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Caravan")
+	TArray<class ACaravan*> InvolvedCaravans;
+
+	// 상단을 전투에 추가
+	UFUNCTION(BlueprintCallable, Category = "Combat|Caravan")
+	void AddCaravan(class ACaravan* Caravan);
+
+	// 상단 제거
+	UFUNCTION(BlueprintCallable, Category = "Combat|Caravan")
+	void RemoveCaravan(class ACaravan* Caravan);
+
+	// 전투 종료 시 패배한 상단 약탈
+	void LootDefeatedCaravans();
+
 protected:
 	// 턴 타이머
 	float TurnTimer;
