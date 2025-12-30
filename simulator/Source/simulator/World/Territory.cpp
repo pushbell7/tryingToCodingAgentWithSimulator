@@ -6,6 +6,8 @@
 #include "TerritoryLandmark.h"
 #include "BaseVillager.h"
 #include "Caravan.h"
+#include "TurnManagerSubsystem.h"
+#include "Kismet/GameplayStatics.h"
 
 ATerritory::ATerritory()
 {
@@ -39,8 +41,31 @@ void ATerritory::BeginPlay()
 
 	TerritoryCenter = GetActorLocation();
 
+	// Register with TurnManager for automatic turn processing
+	if (UWorld* World = GetWorld())
+	{
+		if (UTurnManagerSubsystem* TurnManager = World->GetSubsystem<UTurnManagerSubsystem>())
+		{
+			TurnManager->RegisterTerritory(this);
+		}
+	}
+
 	UE_LOG(LogTemp, Log, TEXT("Territory %s created (Faction: %d, Radius: %.0f)"),
 		*TerritoryName, OwnerFactionID, TerritoryRadius);
+}
+
+void ATerritory::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// Unregister from TurnManager
+	if (UWorld* World = GetWorld())
+	{
+		if (UTurnManagerSubsystem* TurnManager = World->GetSubsystem<UTurnManagerSubsystem>())
+		{
+			TurnManager->UnregisterTerritory(this);
+		}
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void ATerritory::Tick(float DeltaTime)

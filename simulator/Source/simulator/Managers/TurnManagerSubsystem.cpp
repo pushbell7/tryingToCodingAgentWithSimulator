@@ -2,36 +2,54 @@
 
 #include "TurnManagerSubsystem.h"
 #include "BaseVillager.h"
+#include "Territory.h"
 
 void UTurnManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
+	// Villager action system
 	MaxSimultaneousActions = 10;  // 10 actors can act per turn
 	TurnDuration = 1.0f;          // Process requests every 1 second
 	TurnTimer = 0.0f;
 
-	UE_LOG(LogTemp, Log, TEXT("TurnManagerSubsystem initialized - Max Actions: %d, Turn Duration: %.2f"),
+	// Territory turn system
+	TerritoryTurnDuration = 60.0f;  // 60 seconds = 1 day
+	TerritoryTurnTimer = 0.0f;
+	CurrentTurn = 0;
+
+	UE_LOG(LogTemp, Log, TEXT("TurnManagerSubsystem initialized"));
+	UE_LOG(LogTemp, Log, TEXT("  Villager Actions: Max %d, Duration %.2f sec"),
 		MaxSimultaneousActions, TurnDuration);
+	UE_LOG(LogTemp, Log, TEXT("  Territory Turns: Duration %.0f sec (1 day)"),
+		TerritoryTurnDuration);
 }
 
 void UTurnManagerSubsystem::Deinitialize()
 {
 	PendingRequests.Empty();
 	ActiveActors.Empty();
+	RegisteredTerritories.Empty();
 
 	Super::Deinitialize();
 }
 
 void UTurnManagerSubsystem::Tick(float DeltaTime)
 {
+	// Process villager action requests every 1 second
 	TurnTimer += DeltaTime;
-
-	// Process action requests every turn
 	if (TurnTimer >= TurnDuration)
 	{
 		TurnTimer = 0.0f;
 		ProcessActionRequests();
+	}
+
+	// Process territory turns every 60 seconds (1 day)
+	TerritoryTurnTimer += DeltaTime;
+	if (TerritoryTurnTimer >= TerritoryTurnDuration)
+	{
+		TerritoryTurnTimer = 0.0f;
+		ProcessTerritoryTurns();
 	}
 }
 
@@ -198,4 +216,66 @@ float UTurnManagerSubsystem::CalculatePriority(ESocialClass SocialClass, EAction
 	float RandomFactor = FMath::RandRange(0.0f, 0.5f);
 
 	return (BasePriority * ActionWeight) + RandomFactor;
+}
+
+// === Territory Turn System ===
+
+void UTurnManagerSubsystem::RegisterTerritory(ATerritory* Territory)
+{
+	if (!Territory)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TurnManager: Cannot register null territory"));
+		return;
+	}
+
+	if (RegisteredTerritories.Contains(Territory))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TurnManager: Territory %s already registered"), *Territory->TerritoryName);
+		return;
+	}
+
+	RegisteredTerritories.Add(Territory);
+
+	UE_LOG(LogTemp, Log, TEXT("TurnManager: Territory %s registered (Total: %d)"),
+		*Territory->TerritoryName, RegisteredTerritories.Num());
+}
+
+void UTurnManagerSubsystem::UnregisterTerritory(ATerritory* Territory)
+{
+	if (!Territory)
+		return;
+
+	int32 Removed = RegisteredTerritories.Remove(Territory);
+
+	if (Removed > 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("TurnManager: Territory %s unregistered (Remaining: %d)"),
+			*Territory->TerritoryName, RegisteredTerritories.Num());
+	}
+}
+
+void UTurnManagerSubsystem::ProcessTerritoryTurns()
+{
+	if (RegisteredTerritories.Num() == 0)
+		return;
+
+	CurrentTurn++;
+
+	UE_LOG(LogTemp, Warning, TEXT("======================================"));
+	UE_LOG(LogTemp, Warning, TEXT("TURN %d BEGINNING - Processing %d territories"),
+		CurrentTurn, RegisteredTerritories.Num());
+	UE_LOG(LogTemp, Warning, TEXT("======================================"));
+
+	// Process each territory's turn
+	for (ATerritory* Territory : RegisteredTerritories)
+	{
+		if (Territory)
+		{
+			Territory->ProcessTurn();
+		}
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("======================================"));
+	UE_LOG(LogTemp, Warning, TEXT("TURN %d COMPLETE"), CurrentTurn);
+	UE_LOG(LogTemp, Warning, TEXT("======================================"));
 }

@@ -69,9 +69,30 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Turn Manager")
 	int32 GetPendingRequestCount() const { return PendingRequests.Num(); }
 
+	// === Territory Turn System ===
+
+	// Register a territory for turn processing
+	UFUNCTION(BlueprintCallable, Category = "Turn Manager|Territory")
+	void RegisterTerritory(class ATerritory* Territory);
+
+	// Unregister a territory
+	UFUNCTION(BlueprintCallable, Category = "Turn Manager|Territory")
+	void UnregisterTerritory(class ATerritory* Territory);
+
+	// Get current turn number
+	UFUNCTION(BlueprintCallable, Category = "Turn Manager|Territory")
+	int32 GetCurrentTurn() const { return CurrentTurn; }
+
+	// Get registered territory count
+	UFUNCTION(BlueprintCallable, Category = "Turn Manager|Territory")
+	int32 GetTerritoryCount() const { return RegisteredTerritories.Num(); }
+
 protected:
 	// Process pending action requests
 	void ProcessActionRequests();
+
+	// Process territory turns (production/consumption)
+	void ProcessTerritoryTurns();
 
 	// Grant action permission to highest priority actors
 	void GrantActionPermissions();
@@ -83,6 +104,8 @@ protected:
 	float CalculatePriority(ESocialClass SocialClass, EActionType ActionType);
 
 private:
+	// === Villager Action System ===
+
 	// Pending action requests (queue)
 	UPROPERTY()
 	TArray<FActionRequest> PendingRequests;
@@ -94,9 +117,24 @@ private:
 	// Maximum number of actors that can act simultaneously
 	int32 MaxSimultaneousActions;
 
-	// Turn duration (how often to process requests)
+	// Turn duration (how often to process action requests)
 	float TurnDuration;
 
 	// Timer for turn processing
 	float TurnTimer;
+
+	// === Territory Turn System ===
+
+	// Registered territories for turn processing
+	UPROPERTY()
+	TArray<class ATerritory*> RegisteredTerritories;
+
+	// Territory turn duration (1 minute = 1 day)
+	float TerritoryTurnDuration;
+
+	// Timer for territory turns
+	float TerritoryTurnTimer;
+
+	// Current turn number
+	int32 CurrentTurn;
 };
