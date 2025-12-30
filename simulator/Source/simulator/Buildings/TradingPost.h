@@ -27,13 +27,21 @@ public:
 
 	// === Territory ===
 
-	// 소속 영지 (향후 Territory 시스템 연동용)
+	// 소속 영지
+	UPROPERTY(BlueprintReadOnly, Category = "Trading Post")
+	class ATerritory* OwnerTerritory;
+
+	// 소속 영지 (이름)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trading Post")
 	FString TerritoryName;
 
 	// 영지 소유자 (팩션/플레이어)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trading Post")
 	int32 OwnerFactionID;
+
+	// 영지 설정
+	UFUNCTION(BlueprintCallable, Category = "Trading Post")
+	void SetOwnerTerritory(class ATerritory* Territory);
 
 	// === Trade Routes ===
 

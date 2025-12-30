@@ -1,0 +1,329 @@
+// Copyright Epic Games, Inc. All Rights Reserved.
+
+#include "Territory.h"
+#include "BaseBuilding.h"
+#include "TradingPost.h"
+#include "BaseVillager.h"
+#include "Caravan.h"
+
+ATerritory::ATerritory()
+{
+	PrimaryActorTick.bCanEverTick = true;
+
+	// 기본 정보
+	TerritoryName = TEXT("New Territory");
+	OwnerFactionID = 0;
+	TerritoryCenter = FVector::ZeroVector;
+	TerritoryRadius = 5000.0f; // 5000 units 반경
+
+	// 자원
+	MaxStorageCapacity = 10000; // 대용량 중앙 창고
+
+	// 건물/주민
+	TradingPost = nullptr;
+}
+
+void ATerritory::BeginPlay()
+{
+	Super::BeginPlay();
+
+	TerritoryCenter = GetActorLocation();
+
+	UE_LOG(LogTemp, Log, TEXT("Territory %s created (Faction: %d, Radius: %.0f)"),
+		*TerritoryName, OwnerFactionID, TerritoryRadius);
+}
+
+void ATerritory::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+}
+
+int32 ATerritory::GetTotalResourceAmount() const
+{
+	int32 Total = 0;
+	for (const auto& Pair : TerritoryResources)
+	{
+		Total += Pair.Value;
+	}
+	return Total;
+}
+
+bool ATerritory::AddResource(EResourceType ResourceType, int32 Amount)
+{
+	if (Amount <= 0) return false;
+
+	// 용량 체크
+	int32 CurrentAmount = GetTotalResourceAmount();
+	if (CurrentAmount + Amount > MaxStorageCapacity)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Territory %s: Storage capacity exceeded"),
+			*TerritoryName);
+		return false;
+	}
+
+	// 자원 추가
+	if (!TerritoryResources.Contains(ResourceType))
+	{
+		TerritoryResources.Add(ResourceType, 0);
+	}
+
+	TerritoryResources[ResourceType] += Amount;
+
+	UE_LOG(LogTemp, Log, TEXT("Territory %s: +%d %s (Total: %d)"),
+		*TerritoryName, Amount,
+		*UEnum::GetValueAsString(ResourceType),
+		TerritoryResources[ResourceType]);
+
+	return true;
+}
+
+bool ATerritory::RemoveResource(EResourceType ResourceType, int32 Amount)
+{
+	if (Amount <= 0) return false;
+
+	if (!TerritoryResources.Contains(ResourceType) || TerritoryResources[ResourceType] < Amount)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Territory %s: Not enough %s to remove"),
+			*TerritoryName, *UEnum::GetValueAsString(ResourceType));
+		return false;
+	}
+
+	TerritoryResources[ResourceType] -= Amount;
+
+	UE_LOG(LogTemp, Log, TEXT("Territory %s: -%d %s (Remaining: %d)"),
+		*TerritoryName, Amount,
+		*UEnum::GetValueAsString(ResourceType),
+		TerritoryResources[ResourceType]);
+
+	return true;
+}
+
+int32 ATerritory::GetResourceAmount(EResourceType ResourceType) const
+{
+	if (TerritoryResources.Contains(ResourceType))
+	{
+		return TerritoryResources[ResourceType];
+	}
+	return 0;
+}
+
+bool ATerritory::HasResource(EResourceType ResourceType, int32 Amount) const
+{
+	return GetResourceAmount(ResourceType) >= Amount;
+}
+
+void ATerritory::RegisterBuilding(ABaseBuilding* Building)
+{
+	if (Building && !Buildings.Contains(Building))
+	{
+		Buildings.Add(Building);
+
+		// 교역소 자동 감지
+		ATradingPost* Post = Cast<ATradingPost>(Building);
+		if (Post)
+		{
+			SetTradingPost(Post);
+		}
+
+		UE_LOG(LogTemp, Log, TEXT("Territory %s: Building %s registered"),
+			*TerritoryName, *Building->BuildingName);
+	}
+}
+
+void ATerritory::UnregisterBuilding(ABaseBuilding* Building)
+{
+	if (Building)
+	{
+		Buildings.Remove(Building);
+
+		if (TradingPost == Building)
+		{
+			TradingPost = nullptr;
+		}
+	}
+}
+
+void ATerritory::SetTradingPost(ATradingPost* Post)
+{
+	if (Post)
+	{
+		TradingPost = Post;
+		Post->TerritoryName = TerritoryName;
+		Post->OwnerFactionID = OwnerFactionID;
+
+		UE_LOG(LogTemp, Log, TEXT("Territory %s: Trading Post connected"), *TerritoryName);
+	}
+}
+
+void ATerritory::RegisterVillager(ABaseVillager* Villager)
+{
+	if (Villager && !Villagers.Contains(Villager))
+	{
+		Villagers.Add(Villager);
+
+		UE_LOG(LogTemp, Log, TEXT("Territory %s: Villager %s registered (Population: %d)"),
+			*TerritoryName, *Villager->VillagerName, GetPopulation());
+	}
+}
+
+void ATerritory::UnregisterVillager(ABaseVillager* Villager)
+{
+	Villagers.Remove(Villager);
+}
+
+void ATerritory::CalculateProduction()
+{
+	ProductionPerTurn.Empty();
+
+	// TODO: 건물별 생산량 집계
+	// 예: 농장 -> 식량, 광산 -> 광물, 작업장 -> 제품 등
+
+	for (ABaseBuilding* Building : Buildings)
+	{
+		if (!Building || !Building->bIsOperational) continue;
+
+		// 건물 타입별 생산
+		// 현재는 예시 코드
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("Territory %s: Production calculated"), *TerritoryName);
+}
+
+void ATerritory::CalculateConsumption()
+{
+	ConsumptionPerTurn.Empty();
+
+	// 주민 1명당 식량 1 소비
+	int32 FoodConsumption = GetPopulation();
+	if (FoodConsumption > 0)
+	{
+		ConsumptionPerTurn.Add(EResourceType::Food, FoodConsumption);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("Territory %s: Consumption calculated (Food: %d)"),
+		*TerritoryName, FoodConsumption);
+}
+
+void ATerritory::ProcessTurn()
+{
+	UE_LOG(LogTemp, Log, TEXT("=== Territory %s: Processing Turn ==="), *TerritoryName);
+
+	// 1. 생산/소비 계산
+	CalculateProduction();
+	CalculateConsumption();
+
+	// 2. 생산 적용
+	for (const auto& Pair : ProductionPerTurn)
+	{
+		AddResource(Pair.Key, Pair.Value);
+	}
+
+	// 3. 소비 적용
+	for (const auto& Pair : ConsumptionPerTurn)
+	{
+		if (!RemoveResource(Pair.Key, Pair.Value))
+		{
+			// 자원 부족 시 경고
+			UE_LOG(LogTemp, Warning, TEXT("Territory %s: Insufficient %s for consumption!"),
+				*TerritoryName, *UEnum::GetValueAsString(Pair.Key));
+		}
+	}
+
+	// 4. 자원 상태 로그
+	UE_LOG(LogTemp, Log, TEXT("Territory %s: Resources after turn:"), *TerritoryName);
+	for (const auto& Pair : TerritoryResources)
+	{
+		if (Pair.Value > 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("  - %s: %d"),
+				*UEnum::GetValueAsString(Pair.Key), Pair.Value);
+		}
+	}
+}
+
+ACaravan* ATerritory::ExportResources(
+	ATerritory* Destination,
+	TMap<EResourceType, int32> Resources,
+	int32 GuardCount)
+{
+	if (!Destination)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Territory %s: Cannot export - invalid destination"),
+			*TerritoryName);
+		return nullptr;
+	}
+
+	if (!TradingPost)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Territory %s: Cannot export - no trading post"),
+			*TerritoryName);
+		return nullptr;
+	}
+
+	if (!Destination->TradingPost)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Territory %s: Cannot export - destination has no trading post"),
+			*TerritoryName);
+		return nullptr;
+	}
+
+	// 자원 확인 및 인출
+	for (const auto& Pair : Resources)
+	{
+		if (!HasResource(Pair.Key, Pair.Value))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Territory %s: Not enough %s to export"),
+				*TerritoryName, *UEnum::GetValueAsString(Pair.Key));
+			return nullptr;
+		}
+	}
+
+	// 영지에서 자원 제거
+	for (const auto& Pair : Resources)
+	{
+		RemoveResource(Pair.Key, Pair.Value);
+	}
+
+	// 교역소를 통해 상단 파견
+	ACaravan* Caravan = TradingPost->SendCaravan(
+		Destination->TradingPost,
+		Resources,
+		GuardCount
+	);
+
+	if (Caravan)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Territory %s -> %s: Caravan dispatched"),
+			*TerritoryName, *Destination->TerritoryName);
+	}
+
+	return Caravan;
+}
+
+void ATerritory::ImportResources(TMap<EResourceType, int32> Resources)
+{
+	for (const auto& Pair : Resources)
+	{
+		AddResource(Pair.Key, Pair.Value);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("Territory %s: Resources imported"), *TerritoryName);
+}
+
+bool ATerritory::IsActorInTerritory(AActor* Actor) const
+{
+	if (!Actor) return false;
+	return IsLocationInTerritory(Actor->GetActorLocation());
+}
+
+bool ATerritory::IsLocationInTerritory(FVector Location) const
+{
+	float Distance = FVector::Dist(TerritoryCenter, Location);
+	return Distance <= TerritoryRadius;
+}
+
+float ATerritory::GetDistanceToTerritory(ATerritory* Other) const
+{
+	if (!Other) return -1.0f;
+	return FVector::Dist(TerritoryCenter, Other->TerritoryCenter);
+}

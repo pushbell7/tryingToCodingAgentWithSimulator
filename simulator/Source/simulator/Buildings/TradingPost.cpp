@@ -2,6 +2,7 @@
 
 #include "TradingPost.h"
 #include "Caravan.h"
+#include "Territory.h"
 
 ATradingPost::ATradingPost()
 {
@@ -18,6 +19,7 @@ ATradingPost::ATradingPost()
 	ConstructionCost.MaxWorkers = 5;
 
 	// 영지 정보
+	OwnerTerritory = nullptr;
 	TerritoryName = TEXT("Unassigned");
 	OwnerFactionID = 0;
 
@@ -223,10 +225,24 @@ void ATradingPost::ReceiveCaravan(ACaravan* Caravan)
 {
 	if (!Caravan) return;
 
-	// 상단의 자원을 창고에 저장
-	for (const auto& Pair : Caravan->CargoResources)
+	// 영지가 있으면 영지 자원으로 직접 이동
+	if (OwnerTerritory)
 	{
-		StoreResource(Pair.Key, Pair.Value);
+		OwnerTerritory->ImportResources(Caravan->CargoResources);
+
+		UE_LOG(LogTemp, Log, TEXT("TradingPost %s: Caravan resources delivered to territory"),
+			*TerritoryName);
+	}
+	else
+	{
+		// 영지 없으면 교역소 창고에 저장
+		for (const auto& Pair : Caravan->CargoResources)
+		{
+			StoreResource(Pair.Key, Pair.Value);
+		}
+
+		UE_LOG(LogTemp, Warning, TEXT("TradingPost %s: No territory - storing in local warehouse"),
+			*TerritoryName);
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("TradingPost %s received caravan from %s"),
@@ -234,6 +250,19 @@ void ATradingPost::ReceiveCaravan(ACaravan* Caravan)
 		Caravan->OriginTradingPost ? *Caravan->OriginTradingPost->TerritoryName : TEXT("Unknown"));
 
 	// 상단 제거는 Caravan이 자체적으로 처리
+}
+
+void ATradingPost::SetOwnerTerritory(ATerritory* Territory)
+{
+	if (Territory)
+	{
+		OwnerTerritory = Territory;
+		TerritoryName = Territory->TerritoryName;
+		OwnerFactionID = Territory->OwnerFactionID;
+
+		UE_LOG(LogTemp, Log, TEXT("TradingPost connected to Territory %s"),
+			*Territory->TerritoryName);
+	}
 }
 
 void ATradingPost::RegisterCaravan(ACaravan* Caravan)
