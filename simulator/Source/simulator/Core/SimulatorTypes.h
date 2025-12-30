@@ -151,6 +151,32 @@ struct FConstructionCost
 };
 
 /**
+ * Noble rank based on territory count
+ * Knight (1+), Baron (3+), Count (7+), Duke (15+), King (30+)
+ */
+UENUM(BlueprintType)
+enum class ENobleRank : uint8
+{
+	None        UMETA(DisplayName = "None"),           // No territories
+	Knight      UMETA(DisplayName = "Knight"),         // 1+ territories
+	Baron       UMETA(DisplayName = "Baron"),          // 3+ territories
+	Count       UMETA(DisplayName = "Count"),          // 7+ territories
+	Duke        UMETA(DisplayName = "Duke"),           // 15+ territories
+	King        UMETA(DisplayName = "King")            // 30+ territories
+};
+
+/**
+ * Territory state
+ */
+UENUM(BlueprintType)
+enum class ETerritoryState : uint8
+{
+	Neutral         UMETA(DisplayName = "Neutral"),        // No owner, resources/population decaying
+	Owned           UMETA(DisplayName = "Owned"),          // Under faction control
+	UnderSiege      UMETA(DisplayName = "Under Siege")     // Landmark being attacked
+};
+
+/**
  * Building types for settlement zones
  */
 UENUM(BlueprintType)
@@ -174,7 +200,8 @@ enum class EBuildingType : uint8
 	// Special
 	Market          UMETA(DisplayName = "Market"),         // Trade hub
 	House           UMETA(DisplayName = "House"),          // Residential (population capacity)
-	TownHall        UMETA(DisplayName = "Town Hall")       // Administration building
+	TownHall        UMETA(DisplayName = "Town Hall"),      // Administration building
+	Landmark        UMETA(DisplayName = "Landmark")        // Territory ownership marker
 };
 
 /**

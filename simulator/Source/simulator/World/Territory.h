@@ -32,7 +32,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Territory")
 	FString TerritoryName;
 
-	// 소유 팩션 ID
+	// 소유 팩션 ID (0 = neutral)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Territory")
 	int32 OwnerFactionID;
 
@@ -43,6 +43,14 @@ public:
 	// 영지 범위 (반경)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Territory")
 	float TerritoryRadius;
+
+	// 영지 상태
+	UPROPERTY(BlueprintReadOnly, Category = "Territory")
+	ETerritoryState TerritoryState;
+
+	// 중립 상태 지속 시간
+	UPROPERTY(BlueprintReadOnly, Category = "Territory")
+	float NeutralStateDuration;
 
 	// === Resource Management ===
 
@@ -84,6 +92,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Territory|Buildings")
 	class ATradingPost* TradingPost;
 
+	// 랜드마크 (영지 소유권 표시)
+	UPROPERTY(BlueprintReadOnly, Category = "Territory|Buildings")
+	class ATerritoryLandmark* Landmark;
+
 	// 건물 등록
 	UFUNCTION(BlueprintCallable, Category = "Territory|Buildings")
 	void RegisterBuilding(class ABaseBuilding* Building);
@@ -95,6 +107,10 @@ public:
 	// 교역소 설정
 	UFUNCTION(BlueprintCallable, Category = "Territory|Buildings")
 	void SetTradingPost(class ATradingPost* Post);
+
+	// 랜드마크 설정
+	UFUNCTION(BlueprintCallable, Category = "Territory|Buildings")
+	void SetLandmark(class ATerritoryLandmark* NewLandmark);
 
 	// === Population ===
 
@@ -162,4 +178,36 @@ public:
 	// 다른 영지까지의 거리
 	UFUNCTION(BlueprintCallable, Category = "Territory")
 	float GetDistanceToTerritory(ATerritory* Other) const;
+
+	// === Landmark Events ===
+
+	// Called when landmark is destroyed
+	UFUNCTION(BlueprintCallable, Category = "Territory|Landmark")
+	void OnLandmarkDestroyed();
+
+	// Called when landmark construction is completed
+	UFUNCTION(BlueprintCallable, Category = "Territory|Landmark")
+	void OnLandmarkCompleted();
+
+	// === Neutral State ===
+
+	// Decay rate for resources when neutral (per second)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Territory|Neutral")
+	float NeutralResourceDecayRate;
+
+	// Decay rate for population when neutral (per second)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Territory|Neutral")
+	float NeutralPopulationDecayRate;
+
+	// Process neutral state decay
+	UFUNCTION(BlueprintCallable, Category = "Territory|Neutral")
+	void ProcessNeutralDecay(float DeltaTime);
+
+	// Make territory neutral (no owner)
+	UFUNCTION(BlueprintCallable, Category = "Territory|Neutral")
+	void MakeNeutral();
+
+	// Set territory owner (claim territory)
+	UFUNCTION(BlueprintCallable, Category = "Territory|Neutral")
+	void SetTerritoryOwner(int32 NewFactionID);
 };

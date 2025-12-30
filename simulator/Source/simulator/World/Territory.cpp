@@ -3,6 +3,7 @@
 #include "Territory.h"
 #include "BaseBuilding.h"
 #include "TradingPost.h"
+#include "TerritoryLandmark.h"
 #include "BaseVillager.h"
 #include "Caravan.h"
 
@@ -12,15 +13,24 @@ ATerritory::ATerritory()
 
 	// 기본 정보
 	TerritoryName = TEXT("New Territory");
-	OwnerFactionID = 0;
+	OwnerFactionID = 0;  // 0 = neutral
 	TerritoryCenter = FVector::ZeroVector;
 	TerritoryRadius = 5000.0f; // 5000 units 반경
+
+	// 상태
+	TerritoryState = ETerritoryState::Neutral;
+	NeutralStateDuration = 0.0f;
 
 	// 자원
 	MaxStorageCapacity = 10000; // 대용량 중앙 창고
 
 	// 건물/주민
 	TradingPost = nullptr;
+	Landmark = nullptr;
+
+	// 중립 상태 감쇠율
+	NeutralResourceDecayRate = 0.1f;  // 초당 0.1 자원 감소
+	NeutralPopulationDecayRate = 0.01f;  // 초당 0.01 인구 감소 (매우 느림)
 }
 
 void ATerritory::BeginPlay()
@@ -36,6 +46,13 @@ void ATerritory::BeginPlay()
 void ATerritory::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	// Process neutral state decay
+	if (TerritoryState == ETerritoryState::Neutral)
+	{
+		NeutralStateDuration += DeltaTime;
+		ProcessNeutralDecay(DeltaTime);
+	}
 }
 
 int32 ATerritory::GetTotalResourceAmount() const
@@ -125,6 +142,13 @@ void ATerritory::RegisterBuilding(ABaseBuilding* Building)
 			SetTradingPost(Post);
 		}
 
+		// 랜드마크 자동 감지
+		ATerritoryLandmark* LandmarkBuilding = Cast<ATerritoryLandmark>(Building);
+		if (LandmarkBuilding)
+		{
+			SetLandmark(LandmarkBuilding);
+		}
+
 		UE_LOG(LogTemp, Log, TEXT("Territory %s: Building %s registered"),
 			*TerritoryName, *Building->BuildingName);
 	}
@@ -140,6 +164,11 @@ void ATerritory::UnregisterBuilding(ABaseBuilding* Building)
 		{
 			TradingPost = nullptr;
 		}
+
+		if (Landmark == Building)
+		{
+			Landmark = nullptr;
+		}
 	}
 }
 
@@ -152,6 +181,17 @@ void ATerritory::SetTradingPost(ATradingPost* Post)
 		Post->OwnerFactionID = OwnerFactionID;
 
 		UE_LOG(LogTemp, Log, TEXT("Territory %s: Trading Post connected"), *TerritoryName);
+	}
+}
+
+void ATerritory::SetLandmark(ATerritoryLandmark* NewLandmark)
+{
+	if (NewLandmark)
+	{
+		Landmark = NewLandmark;
+		NewLandmark->SetOwnerTerritory(this);
+
+		UE_LOG(LogTemp, Log, TEXT("Territory %s: Landmark connected"), *TerritoryName);
 	}
 }
 
@@ -326,4 +366,102 @@ float ATerritory::GetDistanceToTerritory(ATerritory* Other) const
 {
 	if (!Other) return -1.0f;
 	return FVector::Dist(TerritoryCenter, Other->TerritoryCenter);
+}
+
+void ATerritory::OnLandmarkDestroyed()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Territory %s: Landmark DESTROYED - Territory becoming neutral"),
+		*TerritoryName);
+
+	// Territory becomes neutral when landmark is destroyed
+	MakeNeutral();
+}
+
+void ATerritory::OnLandmarkCompleted()
+{
+	UE_LOG(LogTemp, Log, TEXT("Territory %s: Landmark COMPLETED - Territory claimed by faction %d"),
+		*TerritoryName, OwnerFactionID);
+
+	// Territory is now owned
+	TerritoryState = ETerritoryState::Owned;
+	NeutralStateDuration = 0.0f;
+
+	// Transfer remaining resources to new owner (already in territory storage)
+	UE_LOG(LogTemp, Log, TEXT("Territory %s: Resources transferred to new owner"), *TerritoryName);
+}
+
+void ATerritory::ProcessNeutralDecay(float DeltaTime)
+{
+	if (TerritoryState != ETerritoryState::Neutral)
+		return;
+
+	// Decay resources
+	for (auto& Pair : TerritoryResources)
+	{
+		if (Pair.Value > 0)
+		{
+			int32 Decay = FMath::RoundToInt(NeutralResourceDecayRate * DeltaTime);
+			Pair.Value = FMath::Max(0, Pair.Value - Decay);
+		}
+	}
+
+	// Decay population (villagers gradually leave)
+	if (Villagers.Num() > 0)
+	{
+		float PopDecay = NeutralPopulationDecayRate * DeltaTime;
+		if (FMath::FRand() < PopDecay)
+		{
+			// Randomly remove a villager
+			int32 RandomIndex = FMath::RandRange(0, Villagers.Num() - 1);
+			ABaseVillager* VillagerToRemove = Villagers[RandomIndex];
+
+			if (VillagerToRemove)
+			{
+				UE_LOG(LogTemp, Log, TEXT("Territory %s: Villager %s left due to neutral state"),
+					*TerritoryName, *VillagerToRemove->VillagerName);
+
+				// TODO: Actually remove/destroy the villager actor
+				Villagers.RemoveAt(RandomIndex);
+			}
+		}
+	}
+
+	// Log decay status periodically (every 60 seconds)
+	if (FMath::Fmod(NeutralStateDuration, 60.0f) < DeltaTime)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Territory %s neutral for %.0f seconds - Resources: %d, Population: %d"),
+			*TerritoryName, NeutralStateDuration, GetTotalResourceAmount(), Villagers.Num());
+	}
+}
+
+void ATerritory::MakeNeutral()
+{
+	TerritoryState = ETerritoryState::Neutral;
+	OwnerFactionID = 0;  // No owner
+	NeutralStateDuration = 0.0f;
+
+	// Update trading post if exists
+	if (TradingPost)
+	{
+		TradingPost->OwnerFactionID = 0;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Territory %s is now NEUTRAL - resources and population will decay"),
+		*TerritoryName);
+}
+
+void ATerritory::SetTerritoryOwner(int32 NewFactionID)
+{
+	OwnerFactionID = NewFactionID;
+	TerritoryState = ETerritoryState::Owned;
+	NeutralStateDuration = 0.0f;
+
+	// Update trading post if exists
+	if (TradingPost)
+	{
+		TradingPost->OwnerFactionID = NewFactionID;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("Territory %s claimed by faction %d"),
+		*TerritoryName, NewFactionID);
 }
