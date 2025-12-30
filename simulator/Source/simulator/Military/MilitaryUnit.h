@@ -33,6 +33,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
 	virtual void Tick(float DeltaTime) override;
@@ -132,6 +133,24 @@ public:
 	// 평균 체력
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	float GetAverageHealth() const;
+
+	// === Combat State ===
+
+	// 전투 중인지 여부
+	UPROPERTY(BlueprintReadOnly, Category = "Combat")
+	bool bIsInCombat;
+
+	// 참가 중인 전투
+	UPROPERTY(BlueprintReadOnly, Category = "Combat")
+	class ACombatEncounter* CurrentCombat;
+
+	// 전투 진입
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void EnterCombat(class ACombatEncounter* Combat);
+
+	// 전투 이탈
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void LeaveCombat();
 
 protected:
 	// 대형 유지 (병사들을 대형 위치로 이동)

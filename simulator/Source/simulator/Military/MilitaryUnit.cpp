@@ -3,6 +3,7 @@
 #include "MilitaryUnit.h"
 #include "SoldierVillager.h"
 #include "AIController.h"
+#include "CombatManagerSubsystem.h"
 
 AMilitaryUnit::AMilitaryUnit()
 {
@@ -20,6 +21,10 @@ AMilitaryUnit::AMilitaryUnit()
 	TargetLocation = FVector::ZeroVector;
 	bIsMoving = false;
 	MovementSpeed = 300.0f;
+
+	// Combat state
+	bIsInCombat = false;
+	CurrentCombat = nullptr;
 }
 
 void AMilitaryUnit::BeginPlay()
@@ -29,7 +34,34 @@ void AMilitaryUnit::BeginPlay()
 	FormationCenter = GetActorLocation();
 	FormationRotation = GetActorRotation();
 
+	// CombatManager에 등록
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		UCombatManagerSubsystem* CombatManager = World->GetSubsystem<UCombatManagerSubsystem>();
+		if (CombatManager)
+		{
+			CombatManager->RegisterUnit(this);
+		}
+	}
+
 	UE_LOG(LogTemp, Log, TEXT("MilitaryUnit %s created at %s"), *UnitName, *FormationCenter.ToString());
+}
+
+void AMilitaryUnit::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// CombatManager에서 등록 해제
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		UCombatManagerSubsystem* CombatManager = World->GetSubsystem<UCombatManagerSubsystem>();
+		if (CombatManager)
+		{
+			CombatManager->UnregisterUnit(this);
+		}
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void AMilitaryUnit::Tick(float DeltaTime)
@@ -367,4 +399,24 @@ FVector AMilitaryUnit::CalculateScatterFormationPosition(int32 Index) const
 	return FormationCenter
 		- (ForwardVector * Row * ScatterSpacing)
 		+ (RightVector * (Col - SideLength / 2) * ScatterSpacing);
+}
+
+void AMilitaryUnit::EnterCombat(ACombatEncounter* Combat)
+{
+	if (Combat)
+	{
+		bIsInCombat = true;
+		CurrentCombat = Combat;
+		bIsMoving = false; // 전투 중에는 이동 중지
+
+		UE_LOG(LogTemp, Log, TEXT("Unit %s entered combat"), *UnitName);
+	}
+}
+
+void AMilitaryUnit::LeaveCombat()
+{
+	bIsInCombat = false;
+	CurrentCombat = nullptr;
+
+	UE_LOG(LogTemp, Log, TEXT("Unit %s left combat"), *UnitName);
 }
