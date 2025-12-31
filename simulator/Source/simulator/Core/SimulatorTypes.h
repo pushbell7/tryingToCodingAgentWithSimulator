@@ -225,6 +225,7 @@ enum class EBuildingType : uint8
 	Market          UMETA(DisplayName = "Market"),         // Trade hub
 	House           UMETA(DisplayName = "House"),          // Residential (population capacity)
 	TownHall        UMETA(DisplayName = "Town Hall"),      // Administration building
+	GuildHall       UMETA(DisplayName = "Guild Hall"),     // Skill training (medieval apprenticeship)
 	Landmark        UMETA(DisplayName = "Landmark")        // Territory ownership marker
 };
 

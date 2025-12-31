@@ -7,6 +7,7 @@
 #include "BaseVillager.h"
 #include "Caravan.h"
 #include "TurnManagerSubsystem.h"
+#include "GuildHall.h"
 #include "Kismet/GameplayStatics.h"
 
 ATerritory::ATerritory()
@@ -339,7 +340,17 @@ void ATerritory::ProcessTurn()
 		}
 	}
 
-	// 4. 자원 상태 로그
+	// 4. Process guild hall training (if any)
+	for (ABaseBuilding* Building : Buildings)
+	{
+		AGuildHall* Guild = Cast<AGuildHall>(Building);
+		if (Guild && Guild->bIsTraining)
+		{
+			Guild->ProcessTrainingTurn();
+		}
+	}
+
+	// 5. 자원 상태 로그
 	UE_LOG(LogTemp, Log, TEXT("Territory %s: Resources after turn:"), *TerritoryName);
 	for (const auto& Pair : TerritoryResources)
 	{
