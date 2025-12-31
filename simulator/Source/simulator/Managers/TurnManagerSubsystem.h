@@ -87,6 +87,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Turn Manager|Territory")
 	int32 GetTerritoryCount() const { return RegisteredTerritories.Num(); }
 
+	// === Turn Pause System ===
+
+	// Is the turn system paused (waiting for player input)?
+	UFUNCTION(BlueprintCallable, Category = "Turn Manager|Pause")
+	bool IsTurnPaused() const { return bTurnPaused; }
+
+	// Resume turn execution (player finished making decisions)
+	UFUNCTION(BlueprintCallable, Category = "Turn Manager|Pause")
+	void ResumeTurn();
+
+	// Enable/disable automatic turn pause
+	UFUNCTION(BlueprintCallable, Category = "Turn Manager|Pause")
+	void SetAutoPause(bool bEnabled);
+
+	// Is auto-pause enabled?
+	UFUNCTION(BlueprintCallable, Category = "Turn Manager|Pause")
+	bool IsAutoPauseEnabled() const { return bAutoPauseEnabled; }
+
 protected:
 	// Process pending action requests
 	void ProcessActionRequests();
@@ -137,4 +155,15 @@ private:
 
 	// Current turn number
 	int32 CurrentTurn;
+
+	// === Turn Pause System ===
+
+	// Is turn execution paused (waiting for player)?
+	bool bTurnPaused;
+
+	// Should automatically pause before each turn?
+	bool bAutoPauseEnabled;
+
+	// Turn is ready to execute (timer expired, waiting for resume)
+	bool bTurnReady;
 };

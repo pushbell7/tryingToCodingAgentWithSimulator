@@ -18,11 +18,17 @@ void UTurnManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	TerritoryTurnTimer = 0.0f;
 	CurrentTurn = 0;
 
+	// Turn pause system
+	bTurnPaused = false;
+	bAutoPauseEnabled = true; // Default: pause before each turn
+	bTurnReady = false;
+
 	UE_LOG(LogTemp, Log, TEXT("TurnManagerSubsystem initialized"));
 	UE_LOG(LogTemp, Log, TEXT("  Villager Actions: Max %d, Duration %.2f sec"),
 		MaxSimultaneousActions, TurnDuration);
 	UE_LOG(LogTemp, Log, TEXT("  Territory Turns: Duration %.0f sec (1 day)"),
 		TerritoryTurnDuration);
+	UE_LOG(LogTemp, Log, TEXT("  Auto-pause: %s"), bAutoPauseEnabled ? TEXT("Enabled") : TEXT("Disabled"));
 }
 
 void UTurnManagerSubsystem::Deinitialize()
@@ -45,11 +51,32 @@ void UTurnManagerSubsystem::Tick(float DeltaTime)
 	}
 
 	// Process territory turns every 60 seconds (1 day)
-	TerritoryTurnTimer += DeltaTime;
-	if (TerritoryTurnTimer >= TerritoryTurnDuration)
+	if (!bTurnPaused)
 	{
-		TerritoryTurnTimer = 0.0f;
-		ProcessTerritoryTurns();
+		TerritoryTurnTimer += DeltaTime;
+
+		if (TerritoryTurnTimer >= TerritoryTurnDuration)
+		{
+			TerritoryTurnTimer = 0.0f;
+
+			// Check if auto-pause is enabled
+			if (bAutoPauseEnabled)
+			{
+				// Pause and wait for player input
+				bTurnPaused = true;
+				bTurnReady = true;
+
+				UE_LOG(LogTemp, Warning, TEXT("======================================"));
+				UE_LOG(LogTemp, Warning, TEXT("TURN PAUSED - Waiting for player input"));
+				UE_LOG(LogTemp, Warning, TEXT("Call ResumeTurn() to continue"));
+				UE_LOG(LogTemp, Warning, TEXT("======================================"));
+			}
+			else
+			{
+				// No pause - execute turn immediately
+				ProcessTerritoryTurns();
+			}
+		}
 	}
 }
 
@@ -278,4 +305,44 @@ void UTurnManagerSubsystem::ProcessTerritoryTurns()
 	UE_LOG(LogTemp, Warning, TEXT("======================================"));
 	UE_LOG(LogTemp, Warning, TEXT("TURN %d COMPLETE"), CurrentTurn);
 	UE_LOG(LogTemp, Warning, TEXT("======================================"));
+}
+
+// === Turn Pause System ===
+
+void UTurnManagerSubsystem::ResumeTurn()
+{
+	if (!bTurnPaused)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TurnManager: Turn is not paused, cannot resume"));
+		return;
+	}
+
+	if (!bTurnReady)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TurnManager: Turn is not ready yet, wait for timer"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("TurnManager: Resuming turn execution..."));
+
+	// Unpause and execute the turn
+	bTurnPaused = false;
+	bTurnReady = false;
+
+	ProcessTerritoryTurns();
+}
+
+void UTurnManagerSubsystem::SetAutoPause(bool bEnabled)
+{
+	bAutoPauseEnabled = bEnabled;
+
+	UE_LOG(LogTemp, Log, TEXT("TurnManager: Auto-pause %s"),
+		bEnabled ? TEXT("ENABLED") : TEXT("DISABLED"));
+
+	// If disabling while paused, auto-resume
+	if (!bEnabled && bTurnPaused && bTurnReady)
+	{
+		UE_LOG(LogTemp, Log, TEXT("TurnManager: Auto-resuming paused turn"));
+		ResumeTurn();
+	}
 }
