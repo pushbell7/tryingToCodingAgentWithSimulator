@@ -26,10 +26,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	// === Territory ===
-
-	// 소속 영지
-	UPROPERTY(BlueprintReadOnly, Category = "Trading Post")
-	class ATerritory* OwnerTerritory;
+	// Note: OwnerTerritory is inherited from BaseBuilding
 
 	// 소속 영지 (이름)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trading Post")

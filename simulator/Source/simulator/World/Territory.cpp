@@ -160,6 +160,9 @@ void ATerritory::RegisterBuilding(ABaseBuilding* Building)
 	{
 		Buildings.Add(Building);
 
+		// Set building's owner territory reference (for resource access)
+		Building->OwnerTerritory = this;
+
 		// 교역소 자동 감지
 		ATradingPost* Post = Cast<ATradingPost>(Building);
 		if (Post)

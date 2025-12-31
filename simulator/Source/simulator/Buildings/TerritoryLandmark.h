@@ -27,10 +27,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	// === Territory Connection ===
-
-	// Territory this landmark belongs to
-	UPROPERTY(BlueprintReadOnly, Category = "Landmark")
-	class ATerritory* OwnerTerritory;
+	// Note: OwnerTerritory is inherited from BaseBuilding
 
 	// Set owner territory
 	UFUNCTION(BlueprintCallable, Category = "Landmark")

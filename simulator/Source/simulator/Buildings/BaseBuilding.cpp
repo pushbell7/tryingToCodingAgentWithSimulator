@@ -4,6 +4,7 @@
 #include "InventoryComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "BaseVillager.h"
+#include "Territory.h"
 
 ABaseBuilding::ABaseBuilding()
 {
@@ -220,6 +221,28 @@ float ABaseBuilding::CalculateLaborEfficiency() const
 	}
 }
 
+bool ABaseBuilding::HasInputResources() const
+{
+	// No input resources needed = always can produce (Tier 1)
+	if (ProductionRecipe.InputResources.Num() == 0)
+		return true;
+
+	// No territory = can't check resources
+	if (!OwnerTerritory)
+		return false;
+
+	// Check if territory has all required input resources
+	for (const FResourceStack& Input : ProductionRecipe.InputResources)
+	{
+		if (!OwnerTerritory->HasResource(Input.ResourceType, Input.Quantity))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 TMap<EResourceType, int32> ABaseBuilding::CalculateProduction()
 {
 	TMap<EResourceType, int32> Production;
@@ -231,6 +254,26 @@ TMap<EResourceType, int32> ABaseBuilding::CalculateProduction()
 	// No workers = no production
 	if (CurrentWorkers <= 0)
 		return Production;
+
+	// Check if we have input resources (Tier 2/3 buildings)
+	if (!HasInputResources())
+	{
+		// Log why production stopped
+		if (ProductionRecipe.InputResources.Num() > 0)
+		{
+			UE_LOG(LogTemp, Verbose, TEXT("%s: Production halted - insufficient input resources"), *BuildingName);
+		}
+		return Production;
+	}
+
+	// Consume input resources from territory warehouse
+	if (OwnerTerritory && ProductionRecipe.InputResources.Num() > 0)
+	{
+		for (const FResourceStack& Input : ProductionRecipe.InputResources)
+		{
+			OwnerTerritory->RemoveResource(Input.ResourceType, Input.Quantity);
+		}
+	}
 
 	// Calculate efficiency
 	float Efficiency = CalculateLaborEfficiency();

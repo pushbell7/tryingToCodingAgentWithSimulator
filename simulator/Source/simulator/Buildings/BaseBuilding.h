@@ -69,9 +69,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building|Production")
 	bool bCanProduce;
 
+	// Territory this building belongs to
+	UPROPERTY(BlueprintReadOnly, Category = "Building|Production")
+	class ATerritory* OwnerTerritory;
+
 	// Calculate production output based on current workers
+	// Returns actual production (after checking input resources)
 	UFUNCTION(BlueprintCallable, Category = "Building|Production")
 	TMap<EResourceType, int32> CalculateProduction();
+
+	// Check if territory has enough input resources for production
+	UFUNCTION(BlueprintCallable, Category = "Building|Production")
+	bool HasInputResources() const;
 
 	// Calculate labor efficiency (0.0 - 1.0+)
 	UFUNCTION(BlueprintCallable, Category = "Building|Production")
