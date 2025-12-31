@@ -73,6 +73,25 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "State")
 	EActionType CurrentAction;
 
+	// === Skill System (Guild-based) ===
+
+	// Skill levels for different building types (what this villager can work on)
+	// Maps building type -> skill level for that profession
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skills")
+	TMap<EBuildingType, ESkillLevel> Skills;
+
+	// Get skill level for a specific building type
+	UFUNCTION(BlueprintCallable, Category = "Skills")
+	ESkillLevel GetSkillLevel(EBuildingType BuildingType) const;
+
+	// Set/improve skill level for a building type
+	UFUNCTION(BlueprintCallable, Category = "Skills")
+	void SetSkillLevel(EBuildingType BuildingType, ESkillLevel NewLevel);
+
+	// Check if villager can work at a building (meets minimum skill requirement)
+	UFUNCTION(BlueprintCallable, Category = "Skills")
+	bool CanWorkAtBuilding(class ABaseBuilding* Building) const;
+
 	// Assignment System
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Assignment")
 	class AHouse* AssignedHome;

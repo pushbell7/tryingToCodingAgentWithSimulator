@@ -31,6 +31,7 @@ ABaseBuilding::ABaseBuilding()
 	// Production defaults
 	bCanProduce = false;
 	OptimalWorkerCount = 3;
+	RequiredSkillLevel = ESkillLevel::Novice; // Most buildings require Novice (Tier 1)
 }
 
 void ABaseBuilding::BeginPlay()
@@ -159,6 +160,18 @@ bool ABaseBuilding::AddWorker(ABaseVillager* Worker)
 	if (CurrentWorkers >= MaxWorkers)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Building '%s': Full capacity (%d/%d)"), *BuildingName, CurrentWorkers, MaxWorkers);
+		return false;
+	}
+
+	// Check skill requirement (Guild system)
+	if (!Worker->CanWorkAtBuilding(this))
+	{
+		ESkillLevel WorkerSkill = Worker->GetSkillLevel(BuildingType);
+		UE_LOG(LogTemp, Warning, TEXT("Building '%s': Worker %s lacks required skill (has %d, needs %d)"),
+			*BuildingName,
+			*Worker->VillagerName,
+			(int32)WorkerSkill,
+			(int32)RequiredSkillLevel);
 		return false;
 	}
 

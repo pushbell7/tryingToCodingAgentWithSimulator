@@ -11,6 +11,7 @@
 #include "InventoryComponent.h"
 #include "House.h"
 #include "TerrainZone.h"
+#include "BaseBuilding.h"
 
 // Sets default values
 ABaseVillager::ABaseVillager()
@@ -267,4 +268,43 @@ void ABaseVillager::UnassignFromWorkZone()
 		UE_LOG(LogTemp, Log, TEXT("%s unassigned from work zone '%s'"), *VillagerName, *AssignedWorkZone->ZoneName);
 		AssignedWorkZone = nullptr;
 	}
+}
+
+// === Skill System ===
+
+ESkillLevel ABaseVillager::GetSkillLevel(EBuildingType BuildingType) const
+{
+	// If villager has trained in this profession, return their skill level
+	if (Skills.Contains(BuildingType))
+	{
+		return Skills[BuildingType];
+	}
+
+	// Default: Novice (can work Tier 1 buildings)
+	return ESkillLevel::Novice;
+}
+
+void ABaseVillager::SetSkillLevel(EBuildingType BuildingType, ESkillLevel NewLevel)
+{
+	ESkillLevel OldLevel = GetSkillLevel(BuildingType);
+
+	Skills.Add(BuildingType, NewLevel);
+
+	UE_LOG(LogTemp, Log, TEXT("%s: Skill improved for %s - %d -> %d"),
+		*VillagerName,
+		*UEnum::GetValueAsString(BuildingType),
+		(int32)OldLevel,
+		(int32)NewLevel);
+}
+
+bool ABaseVillager::CanWorkAtBuilding(ABaseBuilding* Building) const
+{
+	if (!Building)
+		return false;
+
+	// Get villager's skill level for this building type
+	ESkillLevel VillagerSkill = GetSkillLevel(Building->BuildingType);
+
+	// Check if villager meets minimum requirement
+	return VillagerSkill >= Building->RequiredSkillLevel;
 }

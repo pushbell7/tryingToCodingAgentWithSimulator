@@ -65,6 +65,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building|Production")
 	int32 OptimalWorkerCount;
 
+	// Minimum skill level required to work at this building
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building|Production")
+	ESkillLevel RequiredSkillLevel;
+
 	// Can this building produce resources?
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building|Production")
 	bool bCanProduce;

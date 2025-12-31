@@ -35,6 +35,22 @@ enum class ESocialClass : uint8
 };
 
 /**
+ * Skill level for production buildings (medieval guild system)
+ * Novice: Can work in Tier 1 buildings (raw material gathering)
+ * Apprentice: Can work in Tier 2 buildings (basic processing)
+ * Journeyman: Can work in Tier 2 buildings with better efficiency
+ * Master: Can work in Tier 3 buildings (luxury goods) and train others
+ */
+UENUM(BlueprintType)
+enum class ESkillLevel : uint8
+{
+	Novice      UMETA(DisplayName = "Novice"),         // Unskilled labor (Tier 1)
+	Apprentice  UMETA(DisplayName = "Apprentice"),     // Learning trade (Tier 2 entry)
+	Journeyman  UMETA(DisplayName = "Journeyman"),     // Skilled worker (Tier 2)
+	Master      UMETA(DisplayName = "Master")          // Expert craftsman (Tier 3 + training)
+};
+
+/**
  * Action types that require turn permission
  */
 UENUM(BlueprintType)
