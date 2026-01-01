@@ -8,7 +8,7 @@ public class simulator : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "AIModule", "NavigationSystem", "GameplayTasks" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "AIModule", "NavigationSystem", "GameplayTasks", "UMG", "Slate", "SlateCore" });
 
 		PublicIncludePaths.AddRange(new string[] {
 			"simulator/Characters",
@@ -21,14 +21,15 @@ public class simulator : ModuleRules
 			"simulator/Buildings",
 			"simulator/Villagers",
 			"simulator/Military",
-			"simulator/Economy"
+			"simulator/Economy",
+			"simulator/UI"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
-		
+
 		// Uncomment if you are using online features
 		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
 
