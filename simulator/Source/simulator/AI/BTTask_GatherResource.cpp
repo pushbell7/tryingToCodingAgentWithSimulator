@@ -3,8 +3,10 @@
 #include "BTTask_GatherResource.h"
 #include "AIController.h"
 #include "BaseVillager.h"
+#include "BaseBuilding.h"
 #include "InventoryComponent.h"
 #include "ZoneManagerSubsystem.h"
+#include "ZoneGrid.h"
 #include "BehaviorTree/BlackboardComponent.h"
 
 UBTTask_GatherResource::UBTTask_GatherResource()
@@ -12,8 +14,7 @@ UBTTask_GatherResource::UBTTask_GatherResource()
 	NodeName = "Gather Resource";
 	TargetZoneType = ETerrainZone::Forest;
 	GatherAmount = 10;
-	MaxSearchDistance = 5000.0f;
-	TargetZoneKey = FName("TargetZone");
+	bUseAssignedWorkplace = true;
 }
 
 EBTNodeResult::Type UBTTask_GatherResource::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -46,70 +47,76 @@ EBTNodeResult::Type UBTTask_GatherResource::ExecuteTask(UBehaviorTreeComponent& 
 		return EBTNodeResult::Failed;
 	}
 
-	// Use assigned work zone if available and matches target type, otherwise find nearest zone
-	ATerrainZone* TargetZone = nullptr;
-
-	if (Villager->AssignedWorkZone && Villager->AssignedWorkZone->ZoneType == TargetZoneType)
+	// Get ZoneGrid
+	AZoneGrid* ZoneGrid = ZoneManager->GetZoneGrid();
+	if (!ZoneGrid)
 	{
-		TargetZone = Villager->AssignedWorkZone;
-		UE_LOG(LogTemp, Log, TEXT("%s: Using assigned work zone '%s'"),
-			*Villager->GetName(), *TargetZone->ZoneName);
-	}
-	else
-	{
-		// Fallback to nearest zone if no work zone assigned or type mismatch
-		TargetZone = ZoneManager->GetNearestZone(Villager->GetActorLocation(), TargetZoneType);
-
-		if (!TargetZone)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("%s: No zone of type %d found"), *Villager->GetName(), (int32)TargetZoneType);
-			return EBTNodeResult::Failed;
-		}
-
-		UE_LOG(LogTemp, Log, TEXT("%s: No assigned work zone or type mismatch, using nearest zone '%s'"),
-			*Villager->GetName(), *TargetZone->ZoneName);
-	}
-
-	// Check distance
-	float Distance = FVector::Dist(Villager->GetActorLocation(), TargetZone->GetZoneCenter());
-	if (Distance > MaxSearchDistance)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s: Zone too far (%f > %f)"), *Villager->GetName(), Distance, MaxSearchDistance);
+		UE_LOG(LogTemp, Warning, TEXT("GatherResource: No ZoneGrid found"));
 		return EBTNodeResult::Failed;
 	}
 
-	// Check if villager is in the zone
-	if (!TargetZone->IsActorInZone(Villager))
-	{
-		// Store zone in blackboard for movement task
-		UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
-		if (BlackboardComp)
-		{
-			BlackboardComp->SetValueAsObject(TargetZoneKey, TargetZone);
-		}
+	// Determine work location (from workplace or current location)
+	FVector WorkLocation = Villager->GetActorLocation();
 
-		UE_LOG(LogTemp, Log, TEXT("%s: Not in zone yet, need to move to %s"),
-			*Villager->GetName(), *TargetZone->GetName());
-		return EBTNodeResult::Failed; // Need to move to zone first
+	if (bUseAssignedWorkplace && Villager->AssignedWorkplace)
+	{
+		WorkLocation = Villager->AssignedWorkplace->GetBuildingLocation();
+		UE_LOG(LogTemp, Log, TEXT("%s: Using workplace '%s' location"),
+			*Villager->GetName(), *Villager->AssignedWorkplace->BuildingName);
 	}
 
-	// Gather resources from zone
-	int32 AmountGathered = TargetZone->GatherResources(GatherAmount);
+	// Get zone type at work location
+	ETerrainZone WorkZoneType = ZoneGrid->GetZoneTypeAtLocation(WorkLocation);
 
-	if (AmountGathered <= 0)
+	// Verify zone type matches (if we care about specific type)
+	if (WorkZoneType != TargetZoneType && TargetZoneType != ETerrainZone::Farmland)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s: Zone depleted or cannot produce"), *Villager->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("%s: Work location has wrong zone type (%s, expected %s)"),
+			*Villager->GetName(),
+			*UEnum::GetValueAsString(WorkZoneType),
+			*UEnum::GetValueAsString(TargetZoneType));
 		return EBTNodeResult::Failed;
 	}
 
-	// Add to inventory
-	EResourceType ResourceType = TargetZone->GetProducedResourceType();
-	int32 AmountAdded = Villager->Inventory->AddResource(ResourceType, AmountGathered);
+	// Determine resource type from zone type
+	EResourceType ResourceType = EResourceType::Food;
+
+	switch (WorkZoneType)
+	{
+	case ETerrainZone::Forest:
+		ResourceType = EResourceType::Wood;
+		break;
+	case ETerrainZone::Mountain:
+		ResourceType = EResourceType::Stone;
+		break;
+	case ETerrainZone::Farmland:
+	case ETerrainZone::Pasture:
+		ResourceType = EResourceType::Food;
+		break;
+	case ETerrainZone::Water:
+		// Water doesn't produce gatherable resources directly
+		UE_LOG(LogTemp, Warning, TEXT("%s: Cannot gather from Water zone"), *Villager->GetName());
+		return EBTNodeResult::Failed;
+	case ETerrainZone::Settlement:
+		// Settlements don't produce raw resources
+		UE_LOG(LogTemp, Warning, TEXT("%s: Cannot gather from Settlement zone"), *Villager->GetName());
+		return EBTNodeResult::Failed;
+	default:
+		ResourceType = EResourceType::Food;
+		break;
+	}
+
+	// Gather resources (simplified - just add to inventory)
+	// TODO: Add resource depletion/regeneration system to ZoneGrid cells
+	int32 AmountAdded = Villager->Inventory->AddResource(ResourceType, GatherAmount);
 
 	if (AmountAdded > 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s: Gathered %d x %d from %s"),
-			*Villager->GetName(), (int32)ResourceType, AmountAdded, *TargetZone->GetName());
+		UE_LOG(LogTemp, Log, TEXT("%s: Gathered %d x %s from %s zone"),
+			*Villager->GetName(),
+			AmountAdded,
+			*UEnum::GetValueAsString(ResourceType),
+			*UEnum::GetValueAsString(WorkZoneType));
 		return EBTNodeResult::Succeeded;
 	}
 	else

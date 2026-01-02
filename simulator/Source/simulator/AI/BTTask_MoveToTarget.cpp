@@ -153,18 +153,10 @@ bool UBTTask_MoveToTarget::GetTargetLocation(UBehaviorTreeComponent& OwnerComp, 
 		return false;
 	}
 
-	// Try to get as object first (Building or Zone)
+	// Try to get as object first (Building or Actor)
 	UObject* TargetObject = BlackboardComp->GetValueAsObject(TargetKey);
 	if (TargetObject)
 	{
-		// Check if it's a TerrainZone
-		ATerrainZone* Zone = Cast<ATerrainZone>(TargetObject);
-		if (Zone)
-		{
-			OutLocation = Zone->GetZoneCenter();
-			return true;
-		}
-
 		// Check if it's a Building
 		ABaseBuilding* Building = Cast<ABaseBuilding>(TargetObject);
 		if (Building)

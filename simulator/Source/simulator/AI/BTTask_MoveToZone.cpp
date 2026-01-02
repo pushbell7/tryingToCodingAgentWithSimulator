@@ -2,15 +2,19 @@
 
 #include "BTTask_MoveToZone.h"
 #include "AIController.h"
+#include "BaseVillager.h"
+#include "ZoneManagerSubsystem.h"
+#include "ZoneGrid.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Navigation/PathFollowingComponent.h"
 
 UBTTask_MoveToZone::UBTTask_MoveToZone()
 {
 	NodeName = "Move To Zone";
-	TargetZoneKey = FName("TargetZone");
+	TargetZoneType = ETerrainZone::Farmland;
+	TargetLocationKey = FName("TargetLocation");
 	AcceptanceRadius = 100.0f;
-	bMoveToCenter = false; // Just enter the zone by default
+	MaxSearchDistance = 10000.0f;
 
 	// This task uses the navigation system
 	bNotifyTick = false;
@@ -25,46 +29,72 @@ EBTNodeResult::Type UBTTask_MoveToZone::ExecuteTask(UBehaviorTreeComponent& Owne
 		return EBTNodeResult::Failed;
 	}
 
-	APawn* ControlledPawn = AIController->GetPawn();
-	if (!ControlledPawn)
+	ABaseVillager* Villager = Cast<ABaseVillager>(AIController->GetPawn());
+	if (!Villager)
 	{
 		return EBTNodeResult::Failed;
 	}
 
-	// Get target zone from blackboard
-	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
-	if (!BlackboardComp)
+	// Get ZoneManagerSubsystem
+	UZoneManagerSubsystem* ZoneManager = Villager->GetWorld()->GetSubsystem<UZoneManagerSubsystem>();
+	if (!ZoneManager)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("MoveToZone: No ZoneManagerSubsystem found"));
 		return EBTNodeResult::Failed;
 	}
 
-	UObject* TargetObject = BlackboardComp->GetValueAsObject(TargetZoneKey);
-	ATerrainZone* TargetZone = Cast<ATerrainZone>(TargetObject);
-
-	if (!TargetZone)
+	// Get ZoneGrid
+	AZoneGrid* ZoneGrid = ZoneManager->GetZoneGrid();
+	if (!ZoneGrid)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s: No target zone in blackboard"), *ControlledPawn->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("MoveToZone: No ZoneGrid found"));
 		return EBTNodeResult::Failed;
 	}
 
-	// Check if already in zone
-	if (TargetZone->IsActorInZone(ControlledPawn))
+	// Check current location zone type
+	FVector CurrentLocation = Villager->GetActorLocation();
+	ETerrainZone CurrentZoneType = ZoneGrid->GetZoneTypeAtLocation(CurrentLocation);
+
+	// Already in target zone type?
+	if (CurrentZoneType == TargetZoneType)
 	{
-		UE_LOG(LogTemp, Log, TEXT("%s: Already in target zone %s"),
-			*ControlledPawn->GetName(), *TargetZone->GetName());
+		UE_LOG(LogTemp, Log, TEXT("%s: Already in %s zone"),
+			*Villager->GetName(), *UEnum::GetValueAsString(TargetZoneType));
 		return EBTNodeResult::Succeeded;
 	}
 
-	// Determine target location
-	FVector TargetLocation;
-	if (bMoveToCenter)
+	// Find nearest cell of target zone type
+	FVector TargetLocation = FVector::ZeroVector;
+	float MinDistance = MaxSearchDistance;
+	bool bFoundZone = false;
+
+	// Simple search through all cells (could be optimized with spatial partitioning)
+	for (const FZoneCellData& Cell : ZoneGrid->ZoneCells)
 	{
-		TargetLocation = TargetZone->GetZoneCenter();
+		if (Cell.ZoneType == TargetZoneType)
+		{
+			float Distance = FVector::Dist(CurrentLocation, Cell.WorldPosition);
+			if (Distance < MinDistance)
+			{
+				MinDistance = Distance;
+				TargetLocation = Cell.WorldPosition;
+				bFoundZone = true;
+			}
+		}
 	}
-	else
+
+	if (!bFoundZone)
 	{
-		// Move towards center but don't require reaching it exactly
-		TargetLocation = TargetZone->GetZoneCenter();
+		UE_LOG(LogTemp, Warning, TEXT("%s: No %s zone found within %.0f units"),
+			*Villager->GetName(), *UEnum::GetValueAsString(TargetZoneType), MaxSearchDistance);
+		return EBTNodeResult::Failed;
+	}
+
+	// Store target location in blackboard
+	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
+	if (BlackboardComp)
+	{
+		BlackboardComp->SetValueAsVector(TargetLocationKey, TargetLocation);
 	}
 
 	// Move to target location
@@ -80,20 +110,21 @@ EBTNodeResult::Type UBTTask_MoveToZone::ExecuteTask(UBehaviorTreeComponent& Owne
 
 	if (MoveResult == EPathFollowingRequestResult::RequestSuccessful)
 	{
-		UE_LOG(LogTemp, Log, TEXT("%s: Moving to zone %s at %s"),
-			*ControlledPawn->GetName(), *TargetZone->GetName(), *TargetLocation.ToString());
+		UE_LOG(LogTemp, Log, TEXT("%s: Moving to %s zone at %s (distance: %.0f)"),
+			*Villager->GetName(), *UEnum::GetValueAsString(TargetZoneType),
+			*TargetLocation.ToString(), MinDistance);
 		return EBTNodeResult::InProgress;
 	}
 	else if (MoveResult == EPathFollowingRequestResult::AlreadyAtGoal)
 	{
-		UE_LOG(LogTemp, Log, TEXT("%s: Already at zone %s"),
-			*ControlledPawn->GetName(), *TargetZone->GetName());
+		UE_LOG(LogTemp, Log, TEXT("%s: Already at %s zone"),
+			*Villager->GetName(), *UEnum::GetValueAsString(TargetZoneType));
 		return EBTNodeResult::Succeeded;
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s: Failed to start moving to zone %s"),
-			*ControlledPawn->GetName(), *TargetZone->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("%s: Failed to start moving to %s zone"),
+			*Villager->GetName(), *UEnum::GetValueAsString(TargetZoneType));
 		return EBTNodeResult::Failed;
 	}
 }

@@ -8,8 +8,8 @@
 #include "BTTask_MoveToZone.generated.h"
 
 /**
- * Behavior Tree task to move to a terrain zone
- * Uses blackboard to read the target zone and moves the AI to it
+ * Behavior Tree task to move to a specific zone type location
+ * Uses ZoneGrid to find nearest zone of specified type
  */
 UCLASS()
 class SIMULATOR_API UBTTask_MoveToZone : public UBTTaskNode
@@ -22,15 +22,19 @@ public:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
 protected:
-	// Blackboard key for reading target zone
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Blackboard")
-	FName TargetZoneKey;
+	// Target zone type to move to
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+	ETerrainZone TargetZoneType;
 
-	// How close to the zone center we need to get (acceptance radius)
+	// Blackboard key for storing target location
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Blackboard")
+	FName TargetLocationKey;
+
+	// How close we need to get (acceptance radius)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	float AcceptanceRadius;
 
-	// Whether to move to exact center or just enter the zone
+	// Maximum search distance for zones
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
-	bool bMoveToCenter;
+	float MaxSearchDistance;
 };
