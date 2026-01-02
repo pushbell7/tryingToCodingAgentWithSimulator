@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "Zone Paint Tool",
+	"Description": "Editor mode for painting terrain zones on ZoneGrid",
+	"Category": "Editor",
+	"CreatedBy": "Your Name",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": false,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "ZonePaintTool",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	]
+}
