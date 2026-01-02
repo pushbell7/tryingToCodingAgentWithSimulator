@@ -4,7 +4,6 @@
 #include "AIController.h"
 #include "BaseVillager.h"
 #include "InventoryComponent.h"
-#include "TerrainZone.h"
 #include "ZoneManagerSubsystem.h"
 #include "BehaviorTree/BlackboardComponent.h"
 

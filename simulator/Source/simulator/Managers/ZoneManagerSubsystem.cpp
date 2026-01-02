@@ -1,111 +1,49 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "ZoneManagerSubsystem.h"
-#include "TerrainZone.h"
+#include "ZoneGrid.h"
 #include "EngineUtils.h"
 
 void UZoneManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	// Collect all zones in the world
-	RefreshZoneList();
+	// Find zone grid in world
+	CachedZoneGrid = nullptr;
+	for (TActorIterator<AZoneGrid> It(GetWorld()); It; ++It)
+	{
+		CachedZoneGrid = *It;
+		break; // Assume single zone grid
+	}
 
-	UE_LOG(LogTemp, Log, TEXT("ZoneManagerSubsystem initialized - Found %d zones"), AllZones.Num());
+	if (CachedZoneGrid)
+	{
+		UE_LOG(LogTemp, Log, TEXT("ZoneManagerSubsystem initialized - Found ZoneGrid with %d cells"),
+			CachedZoneGrid->GetTotalCells());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ZoneManagerSubsystem initialized - No ZoneGrid found!"));
+	}
 }
 
 void UZoneManagerSubsystem::Deinitialize()
 {
-	AllZones.Empty();
-
+	CachedZoneGrid = nullptr;
 	Super::Deinitialize();
 }
 
-void UZoneManagerSubsystem::RefreshZoneList()
+AZoneGrid* UZoneManagerSubsystem::GetZoneGrid() const
 {
-	AllZones.Empty();
-
-	// Find all TerrainZone actors in the world
-	for (TActorIterator<ATerrainZone> It(GetWorld()); It; ++It)
-	{
-		ATerrainZone* Zone = *It;
-		if (Zone)
-		{
-			AllZones.Add(Zone);
-		}
-	}
-
-	UE_LOG(LogTemp, Log, TEXT("ZoneManagerSubsystem: Refreshed zone list - %d zones found"), AllZones.Num());
+	return CachedZoneGrid;
 }
 
-TArray<ATerrainZone*> UZoneManagerSubsystem::GetZonesByType(ETerrainZone ZoneType) const
+ETerrainZone UZoneManagerSubsystem::GetZoneTypeAtLocation(FVector Location) const
 {
-	TArray<ATerrainZone*> Result;
-
-	for (ATerrainZone* Zone : AllZones)
+	if (CachedZoneGrid)
 	{
-		if (Zone && Zone->ZoneType == ZoneType)
-		{
-			Result.Add(Zone);
-		}
+		return CachedZoneGrid->GetZoneTypeAtLocation(Location);
 	}
 
-	return Result;
-}
-
-ATerrainZone* UZoneManagerSubsystem::GetNearestZone(FVector Location, ETerrainZone ZoneType) const
-{
-	ATerrainZone* NearestZone = nullptr;
-	float MinDistance = FLT_MAX;
-
-	for (ATerrainZone* Zone : AllZones)
-	{
-		if (Zone && Zone->ZoneType == ZoneType)
-		{
-			float Distance = FVector::Dist(Location, Zone->GetZoneCenter());
-			if (Distance < MinDistance)
-			{
-				MinDistance = Distance;
-				NearestZone = Zone;
-			}
-		}
-	}
-
-	return NearestZone;
-}
-
-TArray<ATerrainZone*> UZoneManagerSubsystem::GetZonesWithinRadius(FVector Location, float Radius) const
-{
-	TArray<ATerrainZone*> Result;
-
-	for (ATerrainZone* Zone : AllZones)
-	{
-		if (Zone)
-		{
-			float Distance = FVector::Dist(Location, Zone->GetZoneCenter());
-			if (Distance <= Radius)
-			{
-				Result.Add(Zone);
-			}
-		}
-	}
-
-	return Result;
-}
-
-ATerrainZone* UZoneManagerSubsystem::GetZoneAtLocation(FVector Location) const
-{
-	for (ATerrainZone* Zone : AllZones)
-	{
-		if (Zone)
-		{
-			// Check using the location directly
-			if (Zone->EncompassesPoint(Location))
-			{
-				return Zone;
-			}
-		}
-	}
-
-	return nullptr;
+	return ETerrainZone::Farmland; // Default
 }

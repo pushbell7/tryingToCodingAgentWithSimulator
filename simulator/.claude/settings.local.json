@@ -14,7 +14,9 @@
       "Bash(tasklist:*)",
       "Bash(start \"\" \"/c/Program Files/Epic Games/UE_5.5/Engine/Binaries/Win64/UnrealEditor.exe\" \"$PWD/simulator.uproject\")",
       "Bash(taskkill:*)",
-      "Bash(\"/c/Program Files/Epic Games/UE_5.5/Engine/Build/BatchFiles/Build.bat\" simulatorEditor Win64 Development -Project=\"$PWD/simulator.uproject\" -WaitMutex)"
+      "Bash(\"/c/Program Files/Epic Games/UE_5.5/Engine/Build/BatchFiles/Build.bat\" simulatorEditor Win64 Development -Project=\"$PWD/simulator.uproject\" -WaitMutex)",
+      "Bash(git rm:*)",
+      "Bash(cmd //c:*)"
     ]
   }
 }

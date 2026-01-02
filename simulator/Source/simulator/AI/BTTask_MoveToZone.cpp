@@ -2,7 +2,6 @@
 
 #include "BTTask_MoveToZone.h"
 #include "AIController.h"
-#include "TerrainZone.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Navigation/PathFollowingComponent.h"
 

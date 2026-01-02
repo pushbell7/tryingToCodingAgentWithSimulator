@@ -97,23 +97,23 @@ public:
 	class AHouse* AssignedHome;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Assignment")
-	class ATerrainZone* AssignedWorkZone;
+	class ABaseBuilding* AssignedWorkplace;
 
 	// Assign villager to a home
 	UFUNCTION(BlueprintCallable, Category = "Assignment")
 	bool AssignToHome(class AHouse* Home);
 
-	// Assign villager to a work zone
+	// Assign villager to a workplace (production building)
 	UFUNCTION(BlueprintCallable, Category = "Assignment")
-	bool AssignToWorkZone(class ATerrainZone* Zone);
+	bool AssignToWorkplace(class ABaseBuilding* Workplace);
 
 	// Unassign from home
 	UFUNCTION(BlueprintCallable, Category = "Assignment")
 	void UnassignFromHome();
 
-	// Unassign from work zone
+	// Unassign from workplace
 	UFUNCTION(BlueprintCallable, Category = "Assignment")
-	void UnassignFromWorkZone();
+	void UnassignFromWorkplace();
 
 	// Request action from turn manager
 	UFUNCTION(BlueprintCallable, Category = "Turn System")

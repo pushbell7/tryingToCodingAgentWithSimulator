@@ -6,7 +6,6 @@
 #include "Navigation/PathFollowingComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BaseVillager.h"
-#include "TerrainZone.h"
 #include "BaseBuilding.h"
 
 UBTTask_MoveToTarget::UBTTask_MoveToTarget()

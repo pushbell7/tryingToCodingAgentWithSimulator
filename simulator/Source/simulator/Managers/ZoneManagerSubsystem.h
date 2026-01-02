@@ -7,11 +7,12 @@
 #include "SimulatorTypes.h"
 #include "ZoneManagerSubsystem.generated.h"
 
-class ATerrainZone;
+class AZoneGrid;
 
 /**
- * Central manager for all terrain zones in the world as a WorldSubsystem
- * Handles zone queries, management, and future dynamic zone creation
+ * Central manager for zone grid system
+ * DEPRECATED: Zone system migrated to data-driven ZoneGrid
+ * TODO: Refactor to ZoneGrid-based queries
  */
 UCLASS()
 class SIMULATOR_API UZoneManagerSubsystem : public UWorldSubsystem
@@ -23,36 +24,16 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
-	// Refresh zone list (useful for dynamic zones later)
+	// Get zone grid in world
 	UFUNCTION(BlueprintCallable, Category = "Zone Manager")
-	void RefreshZoneList();
+	AZoneGrid* GetZoneGrid() const;
 
-	// Get all zones of a specific type
+	// Get zone type at location (uses ZoneGrid)
 	UFUNCTION(BlueprintCallable, Category = "Zone Manager")
-	TArray<ATerrainZone*> GetZonesByType(ETerrainZone ZoneType) const;
-
-	// Get nearest zone of a specific type from a location
-	UFUNCTION(BlueprintCallable, Category = "Zone Manager")
-	ATerrainZone* GetNearestZone(FVector Location, ETerrainZone ZoneType) const;
-
-	// Get all zones within a radius
-	UFUNCTION(BlueprintCallable, Category = "Zone Manager")
-	TArray<ATerrainZone*> GetZonesWithinRadius(FVector Location, float Radius) const;
-
-	// Get all zones in the world
-	UFUNCTION(BlueprintCallable, Category = "Zone Manager")
-	TArray<ATerrainZone*> GetAllZones() const { return AllZones; }
-
-	// Get zone that contains a specific location
-	UFUNCTION(BlueprintCallable, Category = "Zone Manager")
-	ATerrainZone* GetZoneAtLocation(FVector Location) const;
-
-	// Get total number of zones
-	UFUNCTION(BlueprintCallable, Category = "Zone Manager")
-	int32 GetZoneCount() const { return AllZones.Num(); }
+	ETerrainZone GetZoneTypeAtLocation(FVector Location) const;
 
 protected:
-	// All zones in the world
+	// Cached zone grid reference
 	UPROPERTY()
-	TArray<ATerrainZone*> AllZones;
+	AZoneGrid* CachedZoneGrid;
 };

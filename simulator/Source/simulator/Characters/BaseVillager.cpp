@@ -10,7 +10,6 @@
 #include "TurnManagerSubsystem.h"
 #include "InventoryComponent.h"
 #include "House.h"
-#include "TerrainZone.h"
 #include "BaseBuilding.h"
 
 // Sets default values
@@ -34,7 +33,7 @@ ABaseVillager::ABaseVillager()
 
 	// Assignment system defaults
 	AssignedHome = nullptr;
-	AssignedWorkZone = nullptr;
+	AssignedWorkplace = nullptr;
 
 	// Create inventory component
 	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
@@ -225,25 +224,25 @@ bool ABaseVillager::AssignToHome(AHouse* Home)
 	return false;
 }
 
-bool ABaseVillager::AssignToWorkZone(ATerrainZone* Zone)
+bool ABaseVillager::AssignToWorkplace(ABaseBuilding* Workplace)
 {
-	if (!Zone)
+	if (!Workplace)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s: Cannot assign to null work zone"), *VillagerName);
+		UE_LOG(LogTemp, Warning, TEXT("%s: Cannot assign to null workplace"), *VillagerName);
 		return false;
 	}
 
-	// Unassign from previous zone
-	if (AssignedWorkZone)
+	// Unassign from previous workplace
+	if (AssignedWorkplace)
 	{
-		UnassignFromWorkZone();
+		UnassignFromWorkplace();
 	}
 
-	// Add to zone's worker list
-	if (Zone->AddWorker(this))
+	// Add to building's worker list
+	if (Workplace->AddWorker(this))
 	{
-		AssignedWorkZone = Zone;
-		UE_LOG(LogTemp, Log, TEXT("%s assigned to work zone '%s'"), *VillagerName, *Zone->ZoneName);
+		AssignedWorkplace = Workplace;
+		UE_LOG(LogTemp, Log, TEXT("%s assigned to workplace '%s'"), *VillagerName, *Workplace->BuildingName);
 		return true;
 	}
 
@@ -260,13 +259,13 @@ void ABaseVillager::UnassignFromHome()
 	}
 }
 
-void ABaseVillager::UnassignFromWorkZone()
+void ABaseVillager::UnassignFromWorkplace()
 {
-	if (AssignedWorkZone)
+	if (AssignedWorkplace)
 	{
-		AssignedWorkZone->RemoveWorker(this);
-		UE_LOG(LogTemp, Log, TEXT("%s unassigned from work zone '%s'"), *VillagerName, *AssignedWorkZone->ZoneName);
-		AssignedWorkZone = nullptr;
+		AssignedWorkplace->RemoveWorker(this);
+		UE_LOG(LogTemp, Log, TEXT("%s unassigned from workplace '%s'"), *VillagerName, *AssignedWorkplace->BuildingName);
+		AssignedWorkplace = nullptr;
 	}
 }
 

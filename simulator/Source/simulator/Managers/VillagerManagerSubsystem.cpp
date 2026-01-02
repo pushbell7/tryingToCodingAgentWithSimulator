@@ -5,7 +5,6 @@
 #include "CraftsmanVillager.h"
 #include "MerchantVillager.h"
 #include "House.h"
-#include "TerrainZone.h"
 #include "BuildingManagerSubsystem.h"
 #include "ZoneManagerSubsystem.h"
 #include "EngineUtils.h"
